@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: sast-arena
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      initContainers:
+        - name: migrate
+          image: ghcr.io/SEU_USUARIO/sast-arena-api:latest
+          command: ["node", "-e", "import('./dist/db/migrate.js')"]
+          env:
+            - name: DATABASE_URL
+              value: postgresql://sast:sast@postgres:5432/sast_arena
+      containers:
+        - name: api
+          image: ghcr.io/SEU_USUARIO/sast-arena-api:latest
+          env:
+            - name: DATABASE_URL
+              value: postgresql://sast:sast@postgres:5432/sast_arena
+            - name: PORT
+              value: "3000"
+          ports:
+            - containerPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  namespace: sast-arena
+spec:
+  selector:
+    app: api
+  ports:
+    - port: 3000
