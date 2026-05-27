@@ -74,7 +74,7 @@ function CodeBlock({ code }: { code: string }) {
 
 export function InstructionsPage() {
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-3xl mx-auto">
       {/* Header */}
       <div className="mb-10">
         <h1 className="text-3xl font-bold font-code text-slate-100 mb-2">
