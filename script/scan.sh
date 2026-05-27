@@ -26,9 +26,10 @@ SBOM_FILE="$(mktemp /tmp/sbom.XXXXXX.json)"
 GRYPE_FILE="$(mktemp /tmp/grype.XXXXXX.json)"
 SEMGREP_FILE="$(mktemp /tmp/semgrep.XXXXXX.json)"
 GITLEAKS_FILE="$(mktemp /tmp/gitleaks.XXXXXX.json)"
+PAYLOAD_FILE="$(mktemp /tmp/payload.XXXXXX.json)"
 
 cleanup() {
-  rm -f "$SBOM_FILE" "$GRYPE_FILE" "$SEMGREP_FILE" "$GITLEAKS_FILE"
+  rm -f "$SBOM_FILE" "$GRYPE_FILE" "$SEMGREP_FILE" "$GITLEAKS_FILE" "$PAYLOAD_FILE"
 }
 trap cleanup EXIT
 
@@ -127,7 +128,7 @@ echo -e "  ${GREEN}✔${RESET} ${GITLEAKS_COUNT} secrets encontrados\n"
 
 # --- Montar payload ---
 echo -e "${BOLD}Enviando resultados...${RESET}"
-PAYLOAD=$(jq -n \
+jq -n \
   --arg group   "$GROUP_NAME" \
   --arg name    "$PROJECT_NAME" \
   --arg version "$PROJECT_VERSION" \
@@ -151,11 +152,11 @@ PAYLOAD=$(jq -n \
     grype: $grype[0],
     semgrep: $semgrep[0],
     gitleaks: $gitleaks[0]
-  }')
+  }' > "$PAYLOAD_FILE"
 
 RESPONSE=$(curl -s -X POST "${API_URL}/api/submissions" \
   -H "Content-Type: application/json" \
-  -d "$PAYLOAD")
+  -d @"$PAYLOAD_FILE")
 
 # --- Exibir resultado ---
 SCORE=$(echo "$RESPONSE" | jq -r '.score // "erro"')
