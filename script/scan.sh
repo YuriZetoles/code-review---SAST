@@ -81,10 +81,12 @@ GRYPE_VERSION=$(grype version 2>/dev/null | grep "^Version" | awk '{print $2}' |
 SEMGREP_VERSION=$(semgrep --version 2>/dev/null || echo "unknown")
 GITLEAKS_VERSION=$(gitleaks version 2>/dev/null || echo "unknown")
 
-# --- Versão do projeto ---
+# --- Versão e identidade do projeto ---
 PROJECT_VERSION="local"
+REPO_URL=""
 if git -C "$PROJECT_PATH" rev-parse --short HEAD &>/dev/null; then
   PROJECT_VERSION=$(git -C "$PROJECT_PATH" rev-parse --short HEAD)
+  REPO_URL=$(git -C "$PROJECT_PATH" remote get-url origin 2>/dev/null || echo "")
 fi
 
 # --- SCA: Syft + Grype ---
@@ -128,10 +130,16 @@ echo -e "  ${GREEN}✔${RESET} ${GITLEAKS_COUNT} secrets encontrados\n"
 
 # --- Montar payload ---
 echo -e "${BOLD}Enviando resultados...${RESET}"
+REPO_URL_ARG="null"
+if [[ -n "$REPO_URL" ]]; then
+  REPO_URL_ARG="\"$REPO_URL\""
+fi
+
 jq -n \
   --arg group   "$GROUP_NAME" \
   --arg name    "$PROJECT_NAME" \
   --arg version "$PROJECT_VERSION" \
+  --argjson repo_url "$REPO_URL_ARG" \
   --arg syft_v  "$SYFT_VERSION" \
   --arg grype_v "$GRYPE_VERSION" \
   --arg sg_v    "$SEMGREP_VERSION" \
@@ -143,6 +151,7 @@ jq -n \
     group_name: $group,
     project_name: $name,
     project_version: $version,
+    repo_url: $repo_url,
     tool_versions: {
       syft: $syft_v,
       grype: $grype_v,
