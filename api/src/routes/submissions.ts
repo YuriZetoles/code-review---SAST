@@ -5,6 +5,7 @@ import { submissions, vulnerabilities } from '../db/schema.js'
 import { normalizeAll } from '../services/normalizer.js'
 import { calculateScore } from '../services/scorer.js'
 import { eq } from 'drizzle-orm'
+import { emitRankingUpdate } from '../events.js'
 
 const ScanPayloadSchema = z.object({
   group_name: z.string().min(1),
@@ -64,6 +65,8 @@ export async function submissionsRoutes(app: FastifyInstance) {
         })),
       )
     }
+
+    emitRankingUpdate()
 
     return reply.status(201).send({ id: submission.id, score, breakdown })
   })

@@ -40,10 +40,6 @@ export function App() {
                 </svg>
                 Como usar
               </a>
-              <div className="flex items-center gap-2 text-xs text-slate-500 font-code border border-green-500/20 rounded-full px-3 py-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-400 live-dot inline-block" />
-                LIVE
-              </div>
             </nav>
           </div>
         </header>

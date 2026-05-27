@@ -1,39 +1,93 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { api } from '../lib/api.js'
 import { RankingTable } from '../components/RankingTable.js'
 import type { RankingEntry } from '../types.js'
 
-const POLL_INTERVAL = 10_000
+function useRelativeTime(date: Date) {
+  const [, setTick] = useState(0)
+  useEffect(() => {
+    const t = setInterval(() => setTick(n => n + 1), 1000)
+    return () => clearInterval(t)
+  }, [])
+
+  const secs = Math.floor((Date.now() - date.getTime()) / 1000)
+  if (secs < 5) return 'agora mesmo'
+  if (secs < 60) return `há ${secs}s`
+  const mins = Math.floor(secs / 60)
+  return `há ${mins}min`
+}
 
 export function RankingPage() {
   const [entries, setEntries] = useState<RankingEntry[]>([])
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [connected, setConnected] = useState(false)
+  const esRef = useRef<EventSource | null>(null)
+
+  const relativeTime = useRelativeTime(lastUpdate)
 
   useEffect(() => {
+    let fallbackInterval: ReturnType<typeof setInterval> | null = null
     let mounted = true
 
-    async function fetchRanking() {
-      try {
-        const data = await api.getRanking()
-        if (mounted) {
-          setEntries(data)
-          setLastUpdate(new Date())
-          setError(null)
-          setLoading(false)
+    function applyData(data: RankingEntry[]) {
+      if (!mounted) return
+      setEntries(data)
+      setLastUpdate(new Date())
+      setError(null)
+      setLoading(false)
+    }
+
+    function startFallbackPolling() {
+      if (fallbackInterval) return
+      fallbackInterval = setInterval(async () => {
+        try {
+          const data = await api.getRanking()
+          applyData(data)
+        } catch {
+          if (mounted) setError('Erro ao carregar ranking')
         }
-      } catch {
-        if (mounted) {
-          setError('Erro ao carregar ranking')
-          setLoading(false)
+      }, 3000)
+    }
+
+    function connect() {
+      const es = new EventSource('/api/ranking/stream')
+      esRef.current = es
+
+      es.onopen = () => {
+        if (!mounted) return
+        setConnected(true)
+        setError(null)
+        if (fallbackInterval) {
+          clearInterval(fallbackInterval)
+          fallbackInterval = null
         }
+      }
+
+      es.onmessage = (e) => {
+        try {
+          applyData(JSON.parse(e.data) as RankingEntry[])
+        } catch { /* ignore parse errors */ }
+      }
+
+      es.onerror = () => {
+        if (!mounted) return
+        setConnected(false)
+        es.close()
+        startFallbackPolling()
+        // reconnect after 5s
+        setTimeout(() => { if (mounted) connect() }, 5000)
       }
     }
 
-    fetchRanking()
-    const interval = setInterval(fetchRanking, POLL_INTERVAL)
-    return () => { mounted = false; clearInterval(interval) }
+    connect()
+
+    return () => {
+      mounted = false
+      esRef.current?.close()
+      if (fallbackInterval) clearInterval(fallbackInterval)
+    }
   }, [])
 
   const topScore = entries[0]?.score ?? null
@@ -41,7 +95,6 @@ export function RankingPage() {
 
   return (
     <div>
-      {/* Hero section */}
       <div className="mb-8">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
           <div>
@@ -50,18 +103,17 @@ export function RankingPage() {
               <span className="text-green-400 neon-text">ao vivo</span>
             </h1>
             <p className="text-slate-500 text-sm mt-1">
-              Atualizado automaticamente a cada {POLL_INTERVAL / 1000}s
+              Atualiza instantaneamente quando alguém envia um scan
             </p>
           </div>
-          <div className="flex items-center gap-2 text-xs text-slate-500 font-code">
-            <svg className="w-3.5 h-3.5 text-green-400/60" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            {lastUpdate.toLocaleTimeString('pt-BR')}
+          <div className="flex items-center gap-2 text-xs font-code">
+            <span className={`w-1.5 h-1.5 rounded-full inline-block ${connected ? 'bg-green-400 live-dot' : 'bg-yellow-500'}`} />
+            <span className={connected ? 'text-slate-500' : 'text-yellow-500'}>
+              {connected ? `atualizado ${relativeTime}` : `polling — ${relativeTime}`}
+            </span>
           </div>
         </div>
 
-        {/* Stats row */}
         {totalTeams > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
             <div className="bg-slate-900/60 border border-green-500/15 rounded-xl px-4 py-3">
@@ -75,10 +127,12 @@ export function RankingPage() {
               </div>
             )}
             <div className="bg-slate-900/60 border border-green-500/15 rounded-xl px-4 py-3 hidden sm:block">
-              <div className="text-xs font-code text-slate-500 uppercase tracking-widest mb-1">Status</div>
+              <div className="text-xs font-code text-slate-500 uppercase tracking-widest mb-1">Conexão</div>
               <div className="flex items-center gap-2 mt-1">
-                <span className="w-2 h-2 rounded-full bg-green-400 live-dot inline-block" />
-                <span className="text-sm font-code text-green-400">online</span>
+                <span className={`w-2 h-2 rounded-full inline-block ${connected ? 'bg-green-400 live-dot' : 'bg-yellow-500'}`} />
+                <span className={`text-sm font-code ${connected ? 'text-green-400' : 'text-yellow-400'}`}>
+                  {connected ? 'tempo real' : 'reconectando'}
+                </span>
               </div>
             </div>
           </div>
@@ -98,7 +152,7 @@ export function RankingPage() {
         <div className="flex items-center justify-center py-24">
           <div className="flex flex-col items-center gap-3">
             <div className="w-8 h-8 border-2 border-green-500/30 border-t-green-400 rounded-full animate-spin" />
-            <p className="text-slate-500 text-sm font-code">carregando ranking...</p>
+            <p className="text-slate-500 text-sm font-code">conectando...</p>
           </div>
         </div>
       ) : (
