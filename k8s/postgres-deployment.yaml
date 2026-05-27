@@ -31,7 +31,10 @@ spec:
             - name: POSTGRES_USER
               value: sast
             - name: POSTGRES_PASSWORD
-              value: sast
+              valueFrom:
+                secretKeyRef:
+                  name: sast-db-secret
+                  key: password
             - name: POSTGRES_DB
               value: sast_arena
           ports:

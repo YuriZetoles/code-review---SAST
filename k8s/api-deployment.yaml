@@ -19,13 +19,19 @@ spec:
           command: ["node", "dist/db/migrate.js"]
           env:
             - name: DATABASE_URL
-              value: postgresql://sast:sast@postgres:5432/sast_arena
+              valueFrom:
+                secretKeyRef:
+                  name: sast-db-secret
+                  key: database-url
       containers:
         - name: api
           image: yurizetoles/sast-arena-api:latest
           env:
             - name: DATABASE_URL
-              value: postgresql://sast:sast@postgres:5432/sast_arena
+              valueFrom:
+                secretKeyRef:
+                  name: sast-db-secret
+                  key: database-url
             - name: PORT
               value: "3000"
           ports:
