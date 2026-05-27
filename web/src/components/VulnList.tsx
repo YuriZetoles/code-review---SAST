@@ -12,6 +12,15 @@ const SEVERITY_STYLE: Record<string, { badge: string; dot: string }> = {
 
 const SEVERITY_ORDER = ['critical', 'high', 'medium', 'low', 'negligible', 'unknown']
 
+const INFORMATIONAL_PACKAGES = new Set([
+  'stdlib', 'go', 'glibc', 'libc6', 'musl', 'busybox', 'alpine-baselayout', 'alpine-keys',
+])
+
+function isInformational(pkg: string): boolean {
+  const name = pkg.split('@')[0].toLowerCase()
+  return INFORMATIONAL_PACKAGES.has(name)
+}
+
 interface VulnListProps {
   vulns: Vulnerability[]
 }
@@ -30,17 +39,45 @@ function ChevronIcon({ open }: { open: boolean }) {
 export function VulnList({ vulns }: VulnListProps) {
   const [expanded, setExpanded] = useState<string | null>(null)
   const [filter, setFilter] = useState<string>('all')
+  const [showInfo, setShowInfo] = useState(false)
 
-  const counts = vulns.reduce<Record<string, number>>((acc, v) => {
+  const scored = vulns.filter(v => !isInformational(v.package))
+  const informational = vulns.filter(v => isInformational(v.package))
+
+  const displayVulns = showInfo ? vulns : scored
+
+  const counts = scored.reduce<Record<string, number>>((acc, v) => {
     acc[v.severity] = (acc[v.severity] ?? 0) + 1
     return acc
   }, {})
 
   const activeSeverities = SEVERITY_ORDER.filter(s => counts[s] > 0)
-  const filtered = filter === 'all' ? vulns : vulns.filter(v => v.severity === filter)
+  const filtered = filter === 'all' ? displayVulns : displayVulns.filter(v => v.severity === filter)
 
   return (
     <div>
+      {/* Aviso sobre pacotes informacionais */}
+      {informational.length > 0 && (
+        <div className="flex items-start gap-3 bg-slate-900/60 border border-slate-700/40 rounded-xl px-4 py-3 mb-5">
+          <svg className="w-4 h-4 text-slate-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-slate-400 leading-relaxed">
+              <span className="font-semibold text-slate-300 font-code">{informational.length} vulnerabilidade{informational.length > 1 ? 's' : ''} informacional{informational.length > 1 ? 'is' : ''}</span>
+              {' '}encontrada{informational.length > 1 ? 's' : ''} em pacotes de runtime/stdlib (ex: <code className="text-slate-400 bg-slate-800 px-1 rounded text-xs">stdlib</code>, <code className="text-slate-400 bg-slate-800 px-1 rounded text-xs">glibc</code>).
+              Não contam na pontuação — são responsabilidade do ambiente, não do código.{' '}
+              <button
+                onClick={() => setShowInfo(v => !v)}
+                className="text-green-400/70 hover:text-green-400 underline text-xs font-code cursor-pointer transition-colors"
+              >
+                {showInfo ? 'ocultar' : 'ver todas'}
+              </button>
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Filter bar */}
       <div className="flex flex-wrap gap-2 mb-5">
         <button
@@ -52,7 +89,7 @@ export function VulnList({ vulns }: VulnListProps) {
           }`}
         >
           todos
-          <span className="ml-1.5 opacity-60">{vulns.length}</span>
+          <span className="ml-1.5 opacity-60">{displayVulns.length}</span>
         </button>
         {activeSeverities.map(s => {
           const style = SEVERITY_STYLE[s] ?? SEVERITY_STYLE.unknown
@@ -84,13 +121,16 @@ export function VulnList({ vulns }: VulnListProps) {
         {filtered.map(v => {
           const style = SEVERITY_STYLE[v.severity] ?? SEVERITY_STYLE.unknown
           const isOpen = expanded === v.id
+          const info = isInformational(v.package)
           return (
             <div
               key={v.id}
               className={`rounded-lg border transition-all duration-200 overflow-hidden ${
-                isOpen
-                  ? 'border-green-500/30 bg-slate-900/80'
-                  : 'border-slate-800/60 bg-slate-900/40 hover:border-slate-700/80 hover:bg-slate-900/60'
+                info
+                  ? 'border-slate-800/40 bg-slate-900/20 opacity-60'
+                  : isOpen
+                    ? 'border-green-500/30 bg-slate-900/80'
+                    : 'border-slate-800/60 bg-slate-900/40 hover:border-slate-700/80 hover:bg-slate-900/60'
               }`}
             >
               <button
@@ -102,6 +142,11 @@ export function VulnList({ vulns }: VulnListProps) {
                   {v.severity}
                 </span>
                 <span className="font-code text-sm text-green-300/80 truncate flex-1 min-w-0">{v.vuln_id}</span>
+                {info && (
+                  <span className="text-xs font-code text-slate-600 border border-slate-700/40 rounded px-1.5 py-0.5 flex-shrink-0 hidden sm:block">
+                    informacional
+                  </span>
+                )}
                 {v.package && (
                   <span className="text-xs text-slate-500 font-code truncate hidden sm:block flex-shrink-0 max-w-[160px]">
                     {v.package}
@@ -112,6 +157,16 @@ export function VulnList({ vulns }: VulnListProps) {
 
               {isOpen && (
                 <div className="px-4 pb-4 pt-1 border-t border-slate-800/40 space-y-2">
+                  {info && (
+                    <div className="flex items-start gap-2 bg-slate-800/40 rounded-lg px-3 py-2">
+                      <svg className="w-4 h-4 text-slate-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <p className="text-xs text-slate-500 leading-relaxed">
+                        Este pacote faz parte do runtime/stdlib do ambiente. Não conta na pontuação, mas é recomendado manter o ambiente atualizado para mitigar essas CVEs.
+                      </p>
+                    </div>
+                  )}
                   {v.location && (
                     <div className="flex items-start gap-2">
                       <svg className="w-4 h-4 text-slate-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">

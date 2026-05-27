@@ -1,5 +1,21 @@
 import type { GrypeOutput, GitleaksOutput, SemgrepOutput, Vulnerability, Severity } from '../types.js'
 
+const INFORMATIONAL_PACKAGES = new Set([
+  'stdlib',       // Go standard library
+  'go',           // Go runtime
+  'glibc',        // GNU C Library
+  'libc6',        // Debian glibc
+  'musl',         // Alpine C Library
+  'busybox',      // Alpine base utils
+  'alpine-baselayout',
+  'alpine-keys',
+])
+
+export function isInformational(pkg: string): boolean {
+  const name = pkg.split('@')[0].toLowerCase()
+  return INFORMATIONAL_PACKAGES.has(name)
+}
+
 function mapGrypeSeverity(s: string): Severity {
   const map: Record<string, Severity> = {
     Critical: 'critical',
@@ -19,15 +35,19 @@ function mapSemgrepSeverity(s: string): Severity {
 }
 
 export function normalizeGrype(output: GrypeOutput): Vulnerability[] {
-  return output.matches.map(m => ({
-    tool: 'grype' as const,
-    severity: mapGrypeSeverity(m.vulnerability.severity),
-    vulnId: m.vulnerability.id,
-    package: `${m.artifact.name}@${m.artifact.version}`,
-    location: '',
-    description: m.vulnerability.description ?? '',
-    fixAvailable: m.vulnerability.fix.versions[0] ?? null,
-  }))
+  return output.matches.map(m => {
+    const pkg = `${m.artifact.name}@${m.artifact.version}`
+    return {
+      tool: 'grype' as const,
+      severity: mapGrypeSeverity(m.vulnerability.severity),
+      vulnId: m.vulnerability.id,
+      package: pkg,
+      location: '',
+      description: m.vulnerability.description ?? '',
+      fixAvailable: m.vulnerability.fix.versions[0] ?? null,
+      informational: isInformational(pkg),
+    }
+  })
 }
 
 export function normalizeSemgrep(output: SemgrepOutput): Vulnerability[] {

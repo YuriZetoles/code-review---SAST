@@ -60,6 +60,7 @@ export interface Vulnerability {
   location: string
   description: string
   fixAvailable: string | null
+  informational?: boolean
 }
 
 export interface ScoreBreakdown {
@@ -71,6 +72,7 @@ export interface ScoreBreakdown {
   unknown: number
   secrets: number
   total: number
+  informational: number
 }
 
 export interface ScoreResult {
