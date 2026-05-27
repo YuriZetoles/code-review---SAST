@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: web
-          image: ghcr.io/SEU_USUARIO/sast-arena-web:latest
+          image: yurizetoles/sast-arena-web:latest
           ports:
             - containerPort: 80
 ---

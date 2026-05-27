@@ -15,14 +15,14 @@ spec:
     spec:
       initContainers:
         - name: migrate
-          image: ghcr.io/SEU_USUARIO/sast-arena-api:latest
-          command: ["node", "-e", "import('./dist/db/migrate.js')"]
+          image: yurizetoles/sast-arena-api:latest
+          command: ["node", "dist/db/migrate.js"]
           env:
             - name: DATABASE_URL
               value: postgresql://sast:sast@postgres:5432/sast_arena
       containers:
         - name: api
-          image: ghcr.io/SEU_USUARIO/sast-arena-api:latest
+          image: yurizetoles/sast-arena-api:latest
           env:
             - name: DATABASE_URL
               value: postgresql://sast:sast@postgres:5432/sast_arena
