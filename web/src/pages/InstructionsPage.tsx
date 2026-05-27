@@ -145,6 +145,41 @@ score = max(score, 0)     ← nunca negativo`} />
         </p>
       </div>
 
+      {/* Cleanup */}
+      <div className="bg-slate-900/60 border border-red-500/15 rounded-2xl p-6 mb-10">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-7 h-7 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0">
+            <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </div>
+          <h2 className="text-lg font-bold font-code text-slate-100">Limpeza — remover tudo</h2>
+        </div>
+        <p className="text-slate-500 text-sm mb-4">
+          Execute após a oficina para remover todas as ferramentas instaladas.
+        </p>
+        <CodeBlock code={`# Syft e Grype
+sudo rm -f /usr/local/bin/syft /usr/local/bin/grype
+
+# Gitleaks
+sudo rm -f /usr/local/bin/gitleaks
+
+# Semgrep (via pipx)
+pipx uninstall semgrep
+
+# scan.sh baixado
+rm -f scan.sh
+
+# Arquivos temporários do scan (caso existam)
+rm -f /tmp/sbom.*.json /tmp/grype.*.json /tmp/semgrep.*.json /tmp/gitleaks.*.json /tmp/payload.*.json`} />
+        <div className="flex items-start gap-2 mt-3">
+          <svg className="w-4 h-4 text-red-400/60 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p className="text-xs text-slate-500">jq não é removido — é um utilitário comum que pode já existir no sistema.</p>
+        </div>
+      </div>
+
       {/* What the script does */}
       <div className="bg-slate-900/60 border border-green-500/15 rounded-2xl p-6">
         <h2 className="text-lg font-bold font-code text-slate-100 mb-4">
