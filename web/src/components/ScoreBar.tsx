@@ -1,29 +1,31 @@
 interface ScoreBarProps {
   score: number
+  showLabel?: boolean
 }
 
-export function ScoreBar({ score }: ScoreBarProps) {
+export function ScoreBar({ score, showLabel = true }: ScoreBarProps) {
   const color =
-    score >= 80 ? 'bg-green-500' :
-    score >= 50 ? 'bg-yellow-500' :
-    'bg-red-500'
-
-  const textColor =
-    score >= 80 ? 'text-green-400' :
-    score >= 50 ? 'text-yellow-400' :
-    'text-red-400'
+    score >= 80 ? { bar: 'bg-green-400', text: 'text-green-400', glow: 'shadow-neon-sm' } :
+    score >= 50 ? { bar: 'bg-yellow-400', text: 'text-yellow-400', glow: '' } :
+    { bar: 'bg-red-500', text: 'text-red-400', glow: '' }
 
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex-1 bg-gray-700 rounded-full h-2">
+    <div className="flex items-center gap-3">
+      <div className="flex-1 bg-slate-800 rounded-full h-1.5 overflow-hidden">
         <div
-          className={`h-2 rounded-full transition-all duration-500 ${color}`}
+          className={`h-full rounded-full transition-all duration-700 ${color.bar} ${color.glow}`}
           style={{ width: `${score}%` }}
+          role="progressbar"
+          aria-valuenow={score}
+          aria-valuemin={0}
+          aria-valuemax={100}
         />
       </div>
-      <span className={`text-sm font-bold w-8 text-right ${textColor}`}>
-        {score}
-      </span>
+      {showLabel && (
+        <span className={`text-sm font-bold font-code w-8 text-right tabular-nums ${color.text}`}>
+          {score}
+        </span>
+      )}
     </div>
   )
 }
