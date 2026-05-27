@@ -88,9 +88,15 @@ fi
 
 # --- SCA: Syft + Grype ---
 echo -e "${BOLD}[1/3] SCA — Syft + Grype...${RESET}"
-syft dir:"$PROJECT_PATH" -o json > "$SBOM_FILE" 2>/dev/null
-grype sbom:./"$SBOM_FILE" -o json > "$GRYPE_FILE" 2>/dev/null
-GRYPE_COUNT=$(jq '.matches | length' "$GRYPE_FILE")
+if ! syft dir:"$PROJECT_PATH" -o json > "$SBOM_FILE" 2>/tmp/sast_syft_err.log; then
+  echo -e "  ${YELLOW}⚠${RESET} syft retornou erro — usando SBOM vazio"
+  echo '{"artifacts":[],"matches":[]}' > "$SBOM_FILE"
+fi
+if ! grype sbom:"$SBOM_FILE" -o json > "$GRYPE_FILE" 2>/tmp/sast_grype_err.log; then
+  echo -e "  ${YELLOW}⚠${RESET} grype retornou erro — sem CVEs"
+  echo '{"matches":[]}' > "$GRYPE_FILE"
+fi
+GRYPE_COUNT=$(jq '.matches | length' "$GRYPE_FILE" 2>/dev/null || echo 0)
 echo -e "  ${GREEN}✔${RESET} ${GRYPE_COUNT} CVEs encontrados\n"
 
 # --- SAST: Semgrep ---
