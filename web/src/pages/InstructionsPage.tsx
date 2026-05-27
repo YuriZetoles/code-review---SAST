@@ -171,7 +171,7 @@ pipx uninstall semgrep
 rm -f scan.sh
 
 # Arquivos temporários do scan (caso existam)
-rm -f /tmp/sbom.*.json /tmp/grype.*.json /tmp/semgrep.*.json /tmp/gitleaks.*.json /tmp/payload.*.json 2>/dev/null; true`} />
+bash -c 'rm -f /tmp/sbom.*.json /tmp/grype.*.json /tmp/semgrep.*.json /tmp/gitleaks.*.json /tmp/payload.*.json 2>/dev/null; true'`} />
         <div className="flex items-start gap-2 mt-3">
           <svg className="w-4 h-4 text-red-400/60 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
