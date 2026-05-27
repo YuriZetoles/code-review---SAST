@@ -43,9 +43,10 @@ curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sud
 sudo apt install pipx -y && pipx install semgrep && pipx ensurepath
 # Reabra o terminal após instalar
 
-# Gitleaks
-# Linux
-curl -sSfL https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks_linux_x64.tar.gz | sudo tar -xz -C /usr/local/bin
+# Gitleaks — Linux
+GITLEAKS_VER=$(curl -s https://api.github.com/repos/gitleaks/gitleaks/releases/latest | grep '"tag_name"' | cut -d'"' -f4 | tr -d 'v')
+curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VER}/gitleaks_${GITLEAKS_VER}_linux_x64.tar.gz" \
+  | sudo tar -xz -C /usr/local/bin gitleaks
 
 # jq
 sudo apt install jq   # ou brew install jq

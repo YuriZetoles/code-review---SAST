@@ -22,8 +22,9 @@ sudo apt install pipx -y && pipx install semgrep && pipx ensurepath
 # Após instalar: feche e reabra o terminal (ou: source ~/.bashrc / source ~/.zshrc)
 
 # Gitleaks (Secrets)
-curl -sSfL https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks_linux_x64.tar.gz \\
-  | sudo tar -xz -C /usr/local/bin
+GITLEAKS_VER=$(curl -s https://api.github.com/repos/gitleaks/gitleaks/releases/latest | grep '"tag_name"' | cut -d'"' -f4 | tr -d 'v')
+curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v\${GITLEAKS_VER}/gitleaks_\${GITLEAKS_VER}_linux_x64.tar.gz" \\
+  | sudo tar -xz -C /usr/local/bin gitleaks
 
 # jq (processamento JSON)
 sudo apt install jq   # ou: brew install jq`,
