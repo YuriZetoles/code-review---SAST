@@ -12,17 +12,17 @@ const STEPS: Step[] = [
     title: 'Instale as ferramentas necessárias',
     description: 'Execute os comandos abaixo para instalar Syft, Grype, Semgrep, Gitleaks e jq no seu sistema.',
     code: `# Syft (SBOM)
-curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sudo sh -s -- -b /usr/local/bin
 
 # Grype (CVEs)
-curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sudo sh -s -- -b /usr/local/bin
 
 # Semgrep (SAST)
 pip install semgrep
 
 # Gitleaks (Secrets)
 curl -sSfL https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks_linux_x64.tar.gz \\
-  | tar -xz -C /usr/local/bin
+  | sudo tar -xz -C /usr/local/bin
 
 # jq (processamento JSON)
 sudo apt install jq   # ou: brew install jq`,
