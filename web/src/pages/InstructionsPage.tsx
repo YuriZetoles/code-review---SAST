@@ -17,8 +17,9 @@ curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sudo
 # Grype (CVEs)
 curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sudo sh -s -- -b /usr/local/bin
 
-# Semgrep (SAST)
-pip install semgrep
+# Semgrep (SAST) — Ubuntu/Debian 23.04+
+sudo apt install pipx -y && pipx install semgrep && pipx ensurepath
+# Após instalar: feche e reabra o terminal (ou: source ~/.bashrc / source ~/.zshrc)
 
 # Gitleaks (Secrets)
 curl -sSfL https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks_linux_x64.tar.gz \\

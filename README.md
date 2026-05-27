@@ -39,8 +39,9 @@ curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sudo
 # Grype
 curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sudo sh -s -- -b /usr/local/bin
 
-# Semgrep
-pip install semgrep
+# Semgrep — Ubuntu/Debian 23.04+
+sudo apt install pipx -y && pipx install semgrep && pipx ensurepath
+# Reabra o terminal após instalar
 
 # Gitleaks
 # Linux
