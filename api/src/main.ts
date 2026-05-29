@@ -4,7 +4,7 @@ import { submissionsRoutes } from './routes/submissions.js'
 import { rankingRoutes } from './routes/ranking.js'
 
 export function buildApp() {
-  const app = Fastify({ logger: true })
+  const app = Fastify({ logger: true, bodyLimit: 50 * 1024 * 1024 })
 
   app.register(cors, { origin: true })
   app.register(submissionsRoutes, { prefix: '/api' })

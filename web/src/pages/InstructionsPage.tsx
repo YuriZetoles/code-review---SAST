@@ -6,57 +6,39 @@ interface Step {
   description: string
   code?: string
   note?: string
-  linkToRanking?: boolean
 }
 
 const STEPS: Step[] = [
   {
     number: 1,
-    title: 'Instale as ferramentas necessárias',
-    description: 'Execute os comandos abaixo para instalar Syft, Grype, Semgrep, Gitleaks e jq no seu sistema.',
-    code: `# Syft (SBOM)
-curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sudo sh -s -- -b /usr/local/bin
+    title: 'Instale o Docker',
+    description: 'O scanner roda em container — única dependência necessária.',
+    code: `# Linux (Ubuntu/Debian)
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER
+# Feche e reabra o terminal após este comando
 
-# Grype (CVEs)
-curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sudo sh -s -- -b /usr/local/bin
-
-# Semgrep (SAST) — Ubuntu/Debian 23.04+
-sudo apt install pipx -y && pipx install semgrep && pipx ensurepath
-# Após instalar: feche e reabra o terminal (ou: source ~/.bashrc / source ~/.zshrc)
-
-# Gitleaks (Secrets)
-GITLEAKS_VER=$(curl -s https://api.github.com/repos/gitleaks/gitleaks/releases/latest | grep '"tag_name"' | cut -d'"' -f4 | tr -d 'v')
-curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v\${GITLEAKS_VER}/gitleaks_\${GITLEAKS_VER}_linux_x64.tar.gz" \\
-  | sudo tar -xz -C /usr/local/bin gitleaks
-
-# jq (processamento JSON)
-sudo apt install jq   # ou: brew install jq`,
+# macOS / Windows → instale o Docker Desktop`,
+    note: 'Se já tem Docker instalado, pule este passo.',
   },
   {
     number: 2,
-    title: 'Baixe o script de scan',
-    description: 'Faça o download do script scan.sh diretamente do servidor.',
-    code: `curl -O http://codereview.yuriprojects.dpdns.org/scan.sh
-chmod +x scan.sh`,
-    note: 'Você também pode copiar o script manualmente do instrutor.',
+    title: 'Execute o scanner',
+    description: 'Entre na pasta do seu projeto e rode o comando abaixo. O Docker baixa a imagem automaticamente na primeira execução.',
+    code: `cd /caminho/do/seu/projeto
+
+docker run --rm \\
+  -v "$(pwd):/scan" \\
+  yurizetoles/sast-arena-scanner \\
+  --group "Nome do Grupo" \\
+  --name  "nome-do-projeto"`,
+    note: 'A primeira execução baixa a imagem (~800 MB). As próximas são instantâneas.',
   },
   {
     number: 3,
-    title: 'Execute o scan no seu projeto',
-    description: 'Rode o script apontando para o diretório do seu projeto. Substitua os valores entre aspas.',
-    code: `./scan.sh \\
-  --group    "Nome do Grupo" \\
-  --name     "nome-do-projeto" \\
-  --path     ./caminho/do/projeto \\
-  --api-url  http://codereview.yuriprojects.dpdns.org`,
-    note: 'O scan pode levar de 1 a 5 minutos dependendo do tamanho do projeto.',
-  },
-  {
-    number: 4,
     title: 'Acompanhe o ranking ao vivo',
-    description: 'Após o envio, seu grupo aparecerá automaticamente no ranking. A pontuação é atualizada a cada 10 segundos.',
-    note: 'Pontuação começa em 100. Cada vulnerabilidade encontrada reduz a pontuação.',
-    linkToRanking: true,
+    description: 'Após o envio, seu grupo aparece automaticamente no ranking em tempo real.',
+    note: 'Pontuação começa em 100. Rode novamente depois de corrigir problemas para atualizar o score.',
   },
 ]
 
@@ -66,6 +48,7 @@ const SCORING = [
   { label: 'Medium', penalty: '−5 pts', color: 'text-yellow-400 border-yellow-500/30 bg-yellow-500/10' },
   { label: 'Low', penalty: '−1 pt', color: 'text-blue-400 border-blue-500/30 bg-blue-500/10' },
   { label: 'Secrets', penalty: '−15 pts', color: 'text-purple-400 border-purple-500/30 bg-purple-500/10' },
+  { label: 'Misconfig', penalty: '−5–20 pts', color: 'text-pink-400 border-pink-500/30 bg-pink-500/10' },
   { label: 'Unknown', penalty: '0 pts', color: 'text-zinc-400 border-zinc-600/30 bg-zinc-800/60' },
 ]
 
@@ -107,11 +90,10 @@ function CodeBlock({ code }: { code: string }) {
 export function InstructionsPage() {
   return (
     <div>
-      {/* Header */}
-      <div className="mb-10">
+      <div className="mb-6">
         <h1 className="text-3xl font-bold font-code text-zinc-100 mb-2">
           Como{' '}
-          <span className="text-white ">usar</span>
+          <span className="text-white">usar</span>
         </h1>
         <p className="text-zinc-400 text-sm leading-relaxed">
           Siga o passo a passo abaixo para rodar a análise de segurança no seu projeto
@@ -119,14 +101,9 @@ export function InstructionsPage() {
         </p>
       </div>
 
-      {/* Steps */}
       <div className="space-y-6 mb-6">
         {STEPS.map((step) => (
-          <div
-            key={step.number}
-            className="bg-zinc-900/60 border border-white/10 rounded-2xl p-6 relative"
-          >
-            {/* Step number */}
+          <div key={step.number} className="bg-zinc-900/60 border border-white/10 rounded-2xl p-6 relative">
             <div className="flex items-start gap-4">
               <div className="flex-shrink-0 w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center mt-0.5">
                 <span className="text-sm font-bold font-code text-white">{step.number}</span>
@@ -134,9 +111,7 @@ export function InstructionsPage() {
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-zinc-100 font-code mb-1">{step.title}</h3>
                 <p className="text-zinc-400 text-sm leading-relaxed">{step.description}</p>
-
                 {step.code && <CodeBlock code={step.code} />}
-
                 {step.note && (
                   <div className="flex items-start gap-2 mt-3">
                     <svg className="w-4 h-4 text-zinc-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -151,11 +126,8 @@ export function InstructionsPage() {
         ))}
       </div>
 
-      {/* Scoring formula */}
       <div className="bg-zinc-900/60 border border-white/10 rounded-2xl p-6 mb-6">
-        <h2 className="text-lg font-bold font-code text-zinc-100 mb-4">
-          Fórmula de pontuação
-        </h2>
+        <h2 className="text-lg font-bold font-code text-zinc-100 mb-4">Fórmula de pontuação</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
           {SCORING.map(s => (
             <div key={s.label} className={`rounded-xl px-4 py-3 border ${s.color}`}>
@@ -165,60 +137,40 @@ export function InstructionsPage() {
           ))}
         </div>
         <CodeBlock code={`score = 100
-      - (critical × 20)
-      - (high     × 10)
-      - (medium   ×  5)
-      - (low      ×  1)
-      - (secrets  × 15)   ← findings do Gitleaks
+      - (critical  × 20)   ← CVEs críticos
+      - (high      × 10)   ← CVEs altos / SAST high
+      - (medium    ×  5)   ← CVEs médios / misconfigs médios
+      - (low       ×  1)   ← CVEs baixos
+      - (secrets   × 15)   ← secrets expostos (Gitleaks)
+      - (misconfig × 5–20) ← IaC/Dockerfile mal configurado (Trivy)
 
-score = max(score, 0)     ← nunca negativo`} />
-        <p className="text-xs text-zinc-600 mt-3">
-          O grupo com maior score ao final da oficina vence.
-        </p>
+score = max(score, 0)      ← nunca negativo
+cap por ferramenta         ← nenhuma tool domina 100% do score`} />
+        <p className="text-xs text-zinc-500 mt-3">O grupo com maior score ao final da oficina vence.</p>
       </div>
 
-      {/* Cleanup */}
       <div className="bg-zinc-900/60 border border-white/10 rounded-2xl p-6 mb-6">
-        <h2 className="text-lg font-bold font-code text-zinc-100 mb-4">Limpeza — remover tudo</h2>
-        <p className="text-zinc-500 text-sm mb-4">
-          Execute após a oficina para remover todas as ferramentas instaladas.
-        </p>
-        <CodeBlock code={`# Syft e Grype
-sudo rm -f /usr/local/bin/syft /usr/local/bin/grype
-
-# Gitleaks
-sudo rm -f /usr/local/bin/gitleaks
-
-# Semgrep (via pipx)
-pipx uninstall semgrep
-
-# scan.sh baixado
-rm -f scan.sh
-
-# Arquivos temporários do scan (caso existam)
-bash -c 'rm -f /tmp/sbom.*.json /tmp/grype.*.json /tmp/semgrep.*.json /tmp/gitleaks.*.json /tmp/payload.*.json 2>/dev/null; true'`} />
-        <div className="flex items-start gap-2 mt-3">
-          <svg className="w-4 h-4 text-zinc-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <p className="text-xs text-zinc-500">jq não é removido — é um utilitário comum que pode já existir no sistema.</p>
-        </div>
-      </div>
-
-      {/* What the script does */}
-      <div className="bg-zinc-900/60 border border-white/10 rounded-2xl p-6 mb-6">
-        <h2 className="text-lg font-bold font-code text-zinc-100 mb-4">
-          O que o script faz
-        </h2>
+        <h2 className="text-lg font-bold font-code text-zinc-100 mb-4">O que o scanner analisa</h2>
         <ul className="space-y-2 list-disc list-inside text-sm text-zinc-400">
-          <li><span className="text-zinc-300 font-code font-semibold">Syft</span> — Gera SBOM (Software Bill of Materials) do projeto</li>
-          <li><span className="text-zinc-300 font-code font-semibold">Grype</span> — Escaneia dependências em busca de CVEs conhecidos</li>
-          <li><span className="text-zinc-300 font-code font-semibold">Semgrep</span> — Analisa o código estaticamente com regras de segurança</li>
-          <li><span className="text-zinc-300 font-code font-semibold">Gitleaks</span> — Detecta secrets e credenciais expostas no código</li>
+          <li><span className="text-zinc-300 font-code font-semibold">Grype</span> — CVEs em dependências — todas as severidades, sem exceções</li>
+          <li><span className="text-zinc-300 font-code font-semibold">Semgrep</span> — Código-fonte — OWASP Top 10, CWE Top 25, secrets, transport inseguro, JWT, boas práticas</li>
+          <li><span className="text-zinc-300 font-code font-semibold">Gitleaks</span> — Secrets e credenciais expostas no código e histórico git</li>
+          <li><span className="text-zinc-300 font-code font-semibold">Trivy</span> — Misconfigurações em Dockerfiles, manifests Kubernetes e Terraform</li>
           <li><span className="text-zinc-300 font-code font-semibold">Envio automático</span> — resultados enviados ao servidor e score calculado</li>
         </ul>
       </div>
 
+      <div className="bg-zinc-900/60 border border-white/10 rounded-2xl p-6 mb-6">
+        <h2 className="text-lg font-bold font-code text-zinc-100 mb-4">Limpeza — remover tudo</h2>
+        <p className="text-zinc-500 text-sm mb-4">Execute após a oficina para remover a imagem do scanner.</p>
+        <CodeBlock code={`docker rmi yurizetoles/sast-arena-scanner`} />
+        <div className="flex items-start gap-2 mt-3">
+          <svg className="w-4 h-4 text-zinc-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p className="text-xs text-zinc-500">O Docker em si não é removido — apenas a imagem do scanner.</p>
+        </div>
+      </div>
     </div>
   )
 }

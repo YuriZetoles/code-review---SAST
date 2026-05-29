@@ -43,6 +43,7 @@ export function VulnList({ vulns }: VulnListProps) {
 
   return (
     <div>
+
       {/* Filter bar */}
       {activeSeverities.length > 1 && (
         <div className="flex flex-wrap gap-2 mb-5">

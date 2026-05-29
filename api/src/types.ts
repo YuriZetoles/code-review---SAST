@@ -1,4 +1,4 @@
-export type Tool = 'grype' | 'semgrep' | 'gitleaks'
+export type Tool = 'grype' | 'semgrep' | 'gitleaks' | 'trivy'
 export type Severity = 'critical' | 'high' | 'medium' | 'low' | 'negligible' | 'unknown'
 
 export interface GrypeMatch {
@@ -37,6 +37,28 @@ export interface GitleaksFinding {
 
 export type GitleaksOutput = GitleaksFinding[]
 
+export interface TrivyMisconfiguration {
+  ID: string
+  Title: string
+  Description: string
+  Message: string
+  Resolution: string
+  Severity: string
+  Status: string
+}
+
+export interface TrivyResult {
+  Target: string
+  Class: string
+  Type: string
+  Misconfigurations?: TrivyMisconfiguration[]
+}
+
+export interface TrivyOutput {
+  SchemaVersion: number
+  Results: TrivyResult[]
+}
+
 export interface ScanPayload {
   group_name: string
   project_name: string
@@ -46,10 +68,12 @@ export interface ScanPayload {
     grype: string
     semgrep: string
     gitleaks: string
+    trivy: string
   }
   grype: GrypeOutput
   semgrep: SemgrepOutput
   gitleaks: GitleaksOutput
+  trivy: TrivyOutput
 }
 
 export interface Vulnerability {
@@ -70,6 +94,7 @@ export interface ScoreBreakdown {
   negligible: number
   unknown: number
   secrets: number
+  misconfigs: number
   total: number
 }
 

@@ -1,39 +1,77 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { api } from '../lib/api.js'
 import { RankingTable } from '../components/RankingTable.js'
 import type { RankingEntry } from '../types.js'
-
-const POLL_INTERVAL = 10_000
 
 export function RankingPage() {
   const [entries, setEntries] = useState<RankingEntry[]>([])
   const [now, setNow] = useState<Date>(new Date())
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [connected, setConnected] = useState(false)
+  const esRef = useRef<EventSource | null>(null)
 
   useEffect(() => {
+    let fallbackInterval: ReturnType<typeof setInterval> | null = null
     let mounted = true
 
-    async function fetchRanking() {
-      try {
-        const data = await api.getRanking()
-        if (mounted) {
-          setEntries(data)
-          setError(null)
-          setLoading(false)
+    function applyData(data: RankingEntry[]) {
+      if (!mounted) return
+      setEntries(data)
+      setError(null)
+      setLoading(false)
+    }
+
+    function startFallbackPolling() {
+      if (fallbackInterval) return
+      fallbackInterval = setInterval(async () => {
+        try {
+          const data = await api.getRanking()
+          applyData(data)
+        } catch {
+          if (mounted) setError('Erro ao carregar ranking')
         }
-      } catch {
-        if (mounted) {
-          setError('Erro ao carregar ranking')
-          setLoading(false)
+      }, 3000)
+    }
+
+    function connect() {
+      const es = new EventSource('/api/ranking/stream')
+      esRef.current = es
+
+      es.onopen = () => {
+        if (!mounted) return
+        setConnected(true)
+        setError(null)
+        if (fallbackInterval) {
+          clearInterval(fallbackInterval)
+          fallbackInterval = null
         }
+      }
+
+      es.onmessage = (e) => {
+        try {
+          applyData(JSON.parse(e.data) as RankingEntry[])
+        } catch { /* ignore parse errors */ }
+      }
+
+      es.onerror = () => {
+        if (!mounted) return
+        setConnected(false)
+        es.close()
+        startFallbackPolling()
+        setTimeout(() => { if (mounted) connect() }, 5000)
       }
     }
 
-    fetchRanking()
-    const pollInterval = setInterval(fetchRanking, POLL_INTERVAL)
+    connect()
     const clockInterval = setInterval(() => setNow(new Date()), 1000)
-    return () => { mounted = false; clearInterval(pollInterval); clearInterval(clockInterval) }
+
+    return () => {
+      mounted = false
+      esRef.current?.close()
+      if (fallbackInterval) clearInterval(fallbackInterval)
+      clearInterval(clockInterval)
+    }
   }, [])
 
   const topScore = entries[0]?.score ?? null
@@ -43,16 +81,15 @@ export function RankingPage() {
 
   return (
     <div>
-      {/* Hero section */}
       <div className="mb-8">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
           <div>
             <h1 className="text-3xl font-bold font-code text-zinc-100">
               Ranking{' '}
-              <span className="text-white ">ao vivo</span>
+              <span className="text-white">ao vivo</span>
             </h1>
             <p className="text-zinc-500 text-sm mt-1">
-              Atualizado automaticamente a cada {POLL_INTERVAL / 1000}s
+              Atualiza instantaneamente quando alguém envia um scan
             </p>
           </div>
           <div className="flex items-center gap-2 text-xs text-zinc-500 font-code">
@@ -63,7 +100,6 @@ export function RankingPage() {
           </div>
         </div>
 
-        {/* Stats row */}
         {totalTeams > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
             {topScore !== null && (
@@ -105,7 +141,7 @@ export function RankingPage() {
         <div className="flex items-center justify-center py-24">
           <div className="flex flex-col items-center gap-3">
             <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-            <p className="text-zinc-500 text-sm font-code">carregando ranking...</p>
+            <p className="text-zinc-500 text-sm font-code">Conectando...</p>
           </div>
         </div>
       ) : (

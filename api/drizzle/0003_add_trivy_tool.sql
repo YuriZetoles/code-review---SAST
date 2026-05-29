@@ -1,0 +1,1 @@
+ALTER TYPE "tool" ADD VALUE IF NOT EXISTS 'trivy';
