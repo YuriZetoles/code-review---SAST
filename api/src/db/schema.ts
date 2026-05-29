@@ -25,9 +25,9 @@ export const vulnerabilities = pgTable('vulnerabilities', {
   submissionId: uuid('submission_id').notNull().references(() => submissions.id, { onDelete: 'cascade' }),
   tool: toolEnum('tool').notNull(),
   severity: severityEnum('severity').notNull(),
-  vulnId: varchar('vuln_id', { length: 100 }).notNull(),
+  vulnId: text('vuln_id').notNull(),
   package: varchar('package', { length: 200 }).notNull(),
   location: varchar('location', { length: 500 }),
   description: text('description'),
-  fixAvailable: varchar('fix_available', { length: 100 }),
+  fixAvailable: text('fix_available'),
 })
