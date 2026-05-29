@@ -83,6 +83,29 @@ export async function submissionsRoutes(app: FastifyInstance) {
       .from(vulnerabilities)
       .where(eq(vulnerabilities.submissionId, id))
 
-    return { submission, vulnerabilities: vulns }
+    return {
+      submission: {
+        id: submission.id,
+        group_name: submission.groupName,
+        project_name: submission.projectName,
+        project_version: submission.projectVersion,
+        submitted_at: submission.submittedAt,
+        score: submission.score,
+        grype_version: submission.grypeVersion,
+        semgrep_version: submission.semgrepVersion,
+        gitleaks_version: submission.gitleaksVersion,
+      },
+      vulnerabilities: vulns.map(v => ({
+        id: v.id,
+        submission_id: v.submissionId,
+        tool: v.tool,
+        severity: v.severity,
+        vuln_id: v.vulnId,
+        package: v.package,
+        location: v.location,
+        description: v.description,
+        fix_available: v.fixAvailable,
+      })),
+    }
   })
 }
