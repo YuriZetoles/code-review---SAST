@@ -15,7 +15,7 @@ const TOOL_CAPS = {
   grype: 35,
   semgrep: 30,
   gitleaks: 35,
-  trivy: 25,
+  trivy: 15,
 }
 
 export function calculateScore(vulns: Vulnerability[]): ScoreResult {
