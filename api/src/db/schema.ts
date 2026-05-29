@@ -1,6 +1,6 @@
 import { pgTable, uuid, varchar, timestamp, integer, jsonb, text, pgEnum, uniqueIndex } from 'drizzle-orm/pg-core'
 
-export const toolEnum = pgEnum('tool', ['grype', 'semgrep', 'gitleaks'])
+export const toolEnum = pgEnum('tool', ['grype', 'semgrep', 'gitleaks', 'trivy'])
 export const severityEnum = pgEnum('severity', ['critical', 'high', 'medium', 'low', 'negligible', 'unknown'])
 
 export const submissions = pgTable('submissions', {

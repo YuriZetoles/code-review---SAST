@@ -17,10 +17,12 @@ const ScanPayloadSchema = z.object({
     grype: z.string(),
     semgrep: z.string(),
     gitleaks: z.string(),
+    trivy: z.string().optional().default('unknown'),
   }),
   grype: z.object({ matches: z.array(z.any()) }),
   semgrep: z.object({ results: z.array(z.any()) }),
   gitleaks: z.array(z.any()),
+  trivy: z.object({ Results: z.array(z.any()) }).optional().default({ Results: [] }),
 })
 
 export async function submissionsRoutes(app: FastifyInstance) {
@@ -52,6 +54,7 @@ export async function submissionsRoutes(app: FastifyInstance) {
       payload.grype as any,
       payload.semgrep as any,
       payload.gitleaks as any,
+      payload.trivy as any,
     )
     const { score, breakdown } = calculateScore(vulns)
 

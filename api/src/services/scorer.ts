@@ -11,11 +11,11 @@ const PENALTIES: Record<string, number> = {
 
 const SECRET_PENALTY = 15
 
-// Máximo de pontos que cada ferramenta pode descontar
 const TOOL_CAPS = {
   grype: 35,
   semgrep: 30,
   gitleaks: 35,
+  trivy: 25,
 }
 
 export function calculateScore(vulns: Vulnerability[]): ScoreResult {
@@ -27,21 +27,19 @@ export function calculateScore(vulns: Vulnerability[]): ScoreResult {
     negligible: 0,
     unknown: 0,
     secrets: 0,
+    misconfigs: 0,
     total: vulns.length,
-    informational: 0,
   }
 
-  const toolPenalty: Record<string, number> = { grype: 0, semgrep: 0, gitleaks: 0 }
+  const toolPenalty: Record<string, number> = { grype: 0, semgrep: 0, gitleaks: 0, trivy: 0 }
 
   for (const v of vulns) {
-    if (v.informational) {
-      breakdown.informational++
-      continue
-    }
-
     if (v.tool === 'gitleaks') {
       breakdown.secrets++
       toolPenalty.gitleaks += SECRET_PENALTY
+    } else if (v.tool === 'trivy') {
+      breakdown.misconfigs++
+      toolPenalty.trivy += PENALTIES[v.severity]
     } else {
       breakdown[v.severity]++
       toolPenalty[v.tool] += PENALTIES[v.severity]
@@ -51,7 +49,8 @@ export function calculateScore(vulns: Vulnerability[]): ScoreResult {
   const penalty =
     Math.min(toolPenalty.grype, TOOL_CAPS.grype) +
     Math.min(toolPenalty.semgrep, TOOL_CAPS.semgrep) +
-    Math.min(toolPenalty.gitleaks, TOOL_CAPS.gitleaks)
+    Math.min(toolPenalty.gitleaks, TOOL_CAPS.gitleaks) +
+    Math.min(toolPenalty.trivy, TOOL_CAPS.trivy)
 
   return {
     score: Math.max(0, 100 - penalty),
