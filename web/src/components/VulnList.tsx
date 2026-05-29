@@ -12,6 +12,13 @@ const SEVERITY_STYLE: Record<string, { badge: string; dot: string }> = {
 
 const SEVERITY_ORDER = ['critical', 'high', 'medium', 'low', 'negligible', 'unknown']
 
+const TOOL_BADGE: Record<string, string> = {
+  grype:    'text-cyan-400 bg-cyan-500/10 border-cyan-500/30',
+  semgrep:  'text-violet-400 bg-violet-500/10 border-violet-500/30',
+  gitleaks: 'text-red-400 bg-red-500/10 border-red-500/30',
+  trivy:    'text-pink-400 bg-pink-500/10 border-pink-500/30',
+}
+
 interface VulnListProps {
   vulns: Vulnerability[]
 }
@@ -101,6 +108,9 @@ export function VulnList({ vulns }: VulnListProps) {
                   {v.severity}
                 </span>
                 <span className="font-code text-sm text-zinc-300 truncate flex-1 min-w-0">{v.vuln_id}</span>
+                <span className={`px-1.5 py-0.5 rounded text-xs font-code border flex-shrink-0 hidden sm:block ${TOOL_BADGE[v.tool] ?? 'text-zinc-400 bg-zinc-800 border-zinc-700'}`}>
+                  {v.tool}
+                </span>
                 {v.package && (
                   <span className="text-xs text-zinc-500 font-code truncate hidden sm:block flex-shrink-0 max-w-[160px]">
                     {v.package}

@@ -11,7 +11,7 @@ export interface RankingEntry {
 export interface Vulnerability {
   id: string
   submission_id: string
-  tool: 'grype' | 'semgrep' | 'gitleaks'
+  tool: 'grype' | 'semgrep' | 'gitleaks' | 'trivy'
   severity: 'critical' | 'high' | 'medium' | 'low' | 'negligible' | 'unknown'
   vuln_id: string
   package: string

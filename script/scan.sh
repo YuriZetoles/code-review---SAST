@@ -154,6 +154,11 @@ semgrep \
   --config=p/insecure-transport \
   --config=p/jwt \
   --timeout 30 \
+  --exclude node_modules \
+  --exclude vendor \
+  --exclude dist \
+  --exclude build \
+  --exclude .git \
   --json \
   --output "$SEMGREP_FILE" \
   "$PROJECT_PATH" 2>/dev/null || true &
