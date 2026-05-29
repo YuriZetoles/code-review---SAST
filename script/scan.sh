@@ -33,6 +33,16 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# --- DRY: roda ferramenta com fallback em caso de erro ---
+run_tool() {
+  local label="$1" fallback="$2" outfile="$3"
+  shift 3
+  if ! "$@" > "$outfile" 2>/tmp/sast_err.log; then
+    echo -e "  ${YELLOW}⚠${RESET} $label falhou — usando fallback vazio"
+    printf '%s' "$fallback" > "$outfile"
+  fi
+}
+
 # --- Parse args ---
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -47,6 +57,11 @@ done
 # --- Validações ---
 if [[ -z "$GROUP_NAME" || -z "$PROJECT_NAME" || -z "$API_URL" ]]; then
   echo -e "${RED}Uso: $0 --group <nome> --name <projeto> --path <dir> --api-url <url>${RESET}"
+  exit 1
+fi
+
+if [[ ! -d "$PROJECT_PATH" ]]; then
+  echo -e "${RED}Erro: diretório '$PROJECT_PATH' não existe.${RESET}"
   exit 1
 fi
 
@@ -91,37 +106,54 @@ fi
 
 # --- SCA: Syft + Grype ---
 echo -e "${BOLD}[1/3] SCA — Syft + Grype...${RESET}"
-if ! syft dir:"$PROJECT_PATH" -o json > "$SBOM_FILE" 2>/tmp/sast_syft_err.log; then
-  echo -e "  ${YELLOW}⚠${RESET} syft retornou erro — usando SBOM vazio"
-  echo '{"artifacts":[],"matches":[]}' > "$SBOM_FILE"
-fi
-if ! grype sbom:"$SBOM_FILE" -o json > "$GRYPE_FILE" 2>/tmp/sast_grype_err.log; then
-  echo -e "  ${YELLOW}⚠${RESET} grype retornou erro — sem CVEs"
-  echo '{"matches":[]}' > "$GRYPE_FILE"
-fi
+echo -e "  Atualizando base de CVEs..."
+grype db update 2>/dev/null || echo -e "  ${YELLOW}⚠${RESET} db update falhou — usando base local"
+
+run_tool "syft" \
+  '{"artifacts":[],"matches":[]}' \
+  "$SBOM_FILE" \
+  syft dir:"$PROJECT_PATH" -o json
+
+run_tool "grype" \
+  '{"matches":[]}' \
+  "$GRYPE_FILE" \
+  grype sbom:"$SBOM_FILE" -o json
+
 GRYPE_COUNT=$(jq '.matches | length' "$GRYPE_FILE" 2>/dev/null || echo 0)
 echo -e "  ${GREEN}✔${RESET} ${GRYPE_COUNT} CVEs encontrados\n"
 
-# --- SAST: Semgrep ---
+# --- SAST: Semgrep + Secrets: Gitleaks (paralelo) ---
 echo -e "${BOLD}[2/3] SAST — Semgrep...${RESET}"
-semgrep --config=p/security-audit \
+semgrep \
+  --config=p/security-audit \
+  --config=p/owasp-top-ten \
+  --config=p/cwe-top-25 \
+  --config=p/secrets \
+  --config=p/default \
+  --timeout 30 \
   --json \
   --output "$SEMGREP_FILE" \
-  "$PROJECT_PATH" 2>/dev/null || true
+  "$PROJECT_PATH" 2>/dev/null || true &
+SEMGREP_PID=$!
+
+echo -e "${BOLD}[3/3] Secrets — Gitleaks...${RESET}"
+gitleaks detect \
+  --source "$PROJECT_PATH" \
+  --report-format json \
+  --report-path "$GITLEAKS_FILE" \
+  --redact \
+  --exit-code 0 \
+  2>/dev/null || true &
+GITLEAKS_PID=$!
+
+wait $SEMGREP_PID
 if [[ ! -f "$SEMGREP_FILE" ]] || ! jq -e '.results' "$SEMGREP_FILE" &>/dev/null; then
   echo '{"results":[]}' > "$SEMGREP_FILE"
 fi
 SEMGREP_COUNT=$(jq '.results | length' "$SEMGREP_FILE")
 echo -e "  ${GREEN}✔${RESET} ${SEMGREP_COUNT} findings encontrados\n"
 
-# --- Secrets: Gitleaks ---
-echo -e "${BOLD}[3/3] Secrets — Gitleaks...${RESET}"
-gitleaks detect \
-  --source "$PROJECT_PATH" \
-  --report-format json \
-  --report-path "$GITLEAKS_FILE" \
-  --exit-code 0 \
-  2>/dev/null || true
+wait $GITLEAKS_PID
 if [[ ! -f "$GITLEAKS_FILE" ]]; then
   echo '[]' > "$GITLEAKS_FILE"
 fi
@@ -163,9 +195,12 @@ jq -n \
     gitleaks: $gitleaks[0]
   }' > "$PAYLOAD_FILE"
 
-RESPONSE=$(curl -s -X POST "${API_URL}/api/submissions" \
+RESPONSE=$(curl -s --fail --max-time 30 -X POST "${API_URL}/api/submissions" \
   -H "Content-Type: application/json" \
-  -d @"$PAYLOAD_FILE")
+  -d @"$PAYLOAD_FILE") || {
+  echo -e "\n${RED}Erro: API inacessível ou timeout (${API_URL}).${RESET}"
+  exit 1
+}
 
 # --- Exibir resultado ---
 SCORE=$(echo "$RESPONSE" | jq -r '.score // "erro"')
