@@ -1,9 +1,12 @@
+import { useState } from 'react'
+
 interface Step {
   number: number
   title: string
   description: string
   code?: string
   note?: string
+  linkToRanking?: boolean
 }
 
 const STEPS: Step[] = [
@@ -53,6 +56,7 @@ chmod +x scan.sh`,
     title: 'Acompanhe o ranking ao vivo',
     description: 'Após o envio, seu grupo aparecerá automaticamente no ranking. A pontuação é atualizada a cada 10 segundos.',
     note: 'Pontuação começa em 100. Cada vulnerabilidade encontrada reduz a pontuação.',
+    linkToRanking: true,
   },
 ]
 
@@ -62,55 +66,83 @@ const SCORING = [
   { label: 'Medium', penalty: '−5 pts', color: 'text-yellow-400 border-yellow-500/30 bg-yellow-500/10' },
   { label: 'Low', penalty: '−1 pt', color: 'text-blue-400 border-blue-500/30 bg-blue-500/10' },
   { label: 'Secrets', penalty: '−15 pts', color: 'text-purple-400 border-purple-500/30 bg-purple-500/10' },
+  { label: 'Unknown', penalty: '0 pts', color: 'text-zinc-400 border-zinc-600/30 bg-zinc-800/60' },
 ]
 
 function CodeBlock({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false)
+
+  function handleCopy() {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
+
   return (
-    <pre className="bg-[#020617] border border-green-500/15 rounded-xl p-4 overflow-x-auto text-xs font-code text-green-300/80 leading-relaxed mt-3">
-      {code}
-    </pre>
+    <div className="relative mt-3 group/code">
+      <pre className="bg-[#09090b] border border-white/10 rounded-xl p-4 overflow-x-auto text-xs font-code text-zinc-300 leading-relaxed pr-12">
+        {code}
+      </pre>
+      <button
+        onClick={handleCopy}
+        className="absolute top-2.5 right-2.5 w-7 h-7 rounded-md border border-zinc-700/60 bg-zinc-800/80 flex items-center justify-center text-zinc-500 hover:text-white hover:border-white/25 transition-all duration-150 opacity-0 group-hover/code:opacity-100 focus:opacity-100"
+        aria-label="Copiar código"
+        title={copied ? 'Copiado!' : 'Copiar'}
+      >
+        {copied ? (
+          <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        ) : (
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+          </svg>
+        )}
+      </button>
+    </div>
   )
 }
 
 export function InstructionsPage() {
   return (
-    <div className="max-w-3xl">
+    <div>
       {/* Header */}
       <div className="mb-10">
-        <h1 className="text-3xl font-bold font-code text-slate-100 mb-2">
+        <h1 className="text-3xl font-bold font-code text-zinc-100 mb-2">
           Como{' '}
-          <span className="text-green-400 neon-text">usar</span>
+          <span className="text-white ">usar</span>
         </h1>
-        <p className="text-slate-400 text-sm leading-relaxed">
+        <p className="text-zinc-400 text-sm leading-relaxed">
           Siga o passo a passo abaixo para rodar a análise de segurança no seu projeto
           e aparecer no ranking da oficina.
         </p>
       </div>
 
       {/* Steps */}
-      <div className="space-y-6 mb-10">
+      <div className="space-y-6 mb-6">
         {STEPS.map((step) => (
           <div
             key={step.number}
-            className="bg-slate-900/60 border border-green-500/15 rounded-2xl p-6 relative"
+            className="bg-zinc-900/60 border border-white/10 rounded-2xl p-6 relative"
           >
             {/* Step number */}
             <div className="flex items-start gap-4">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-500/15 border border-green-500/30 flex items-center justify-center mt-0.5">
-                <span className="text-sm font-bold font-code text-green-400">{step.number}</span>
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center mt-0.5">
+                <span className="text-sm font-bold font-code text-white">{step.number}</span>
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-slate-100 font-code mb-1">{step.title}</h3>
-                <p className="text-slate-400 text-sm leading-relaxed">{step.description}</p>
+                <h3 className="font-semibold text-zinc-100 font-code mb-1">{step.title}</h3>
+                <p className="text-zinc-400 text-sm leading-relaxed">{step.description}</p>
 
                 {step.code && <CodeBlock code={step.code} />}
 
                 {step.note && (
                   <div className="flex items-start gap-2 mt-3">
-                    <svg className="w-4 h-4 text-green-400/60 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <svg className="w-4 h-4 text-zinc-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <p className="text-xs text-slate-500 leading-relaxed">{step.note}</p>
+                    <p className="text-xs text-zinc-500 leading-relaxed">{step.note}</p>
                   </div>
                 )}
               </div>
@@ -120,8 +152,8 @@ export function InstructionsPage() {
       </div>
 
       {/* Scoring formula */}
-      <div className="bg-slate-900/60 border border-green-500/15 rounded-2xl p-6 mb-10">
-        <h2 className="text-lg font-bold font-code text-slate-100 mb-4">
+      <div className="bg-zinc-900/60 border border-white/10 rounded-2xl p-6 mb-6">
+        <h2 className="text-lg font-bold font-code text-zinc-100 mb-4">
           Fórmula de pontuação
         </h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
@@ -140,22 +172,15 @@ export function InstructionsPage() {
       - (secrets  × 15)   ← findings do Gitleaks
 
 score = max(score, 0)     ← nunca negativo`} />
-        <p className="text-xs text-slate-600 mt-3">
+        <p className="text-xs text-zinc-600 mt-3">
           O grupo com maior score ao final da oficina vence.
         </p>
       </div>
 
       {/* Cleanup */}
-      <div className="bg-slate-900/60 border border-red-500/15 rounded-2xl p-6 mb-10">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-7 h-7 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center flex-shrink-0">
-            <svg className="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-          </div>
-          <h2 className="text-lg font-bold font-code text-slate-100">Limpeza — remover tudo</h2>
-        </div>
-        <p className="text-slate-500 text-sm mb-4">
+      <div className="bg-zinc-900/60 border border-white/10 rounded-2xl p-6 mb-6">
+        <h2 className="text-lg font-bold font-code text-zinc-100 mb-4">Limpeza — remover tudo</h2>
+        <p className="text-zinc-500 text-sm mb-4">
           Execute após a oficina para remover todas as ferramentas instaladas.
         </p>
         <CodeBlock code={`# Syft e Grype
@@ -173,50 +198,27 @@ rm -f scan.sh
 # Arquivos temporários do scan (caso existam)
 bash -c 'rm -f /tmp/sbom.*.json /tmp/grype.*.json /tmp/semgrep.*.json /tmp/gitleaks.*.json /tmp/payload.*.json 2>/dev/null; true'`} />
         <div className="flex items-start gap-2 mt-3">
-          <svg className="w-4 h-4 text-red-400/60 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <svg className="w-4 h-4 text-zinc-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <p className="text-xs text-slate-500">jq não é removido — é um utilitário comum que pode já existir no sistema.</p>
+          <p className="text-xs text-zinc-500">jq não é removido — é um utilitário comum que pode já existir no sistema.</p>
         </div>
       </div>
 
       {/* What the script does */}
-      <div className="bg-slate-900/60 border border-green-500/15 rounded-2xl p-6">
-        <h2 className="text-lg font-bold font-code text-slate-100 mb-4">
+      <div className="bg-zinc-900/60 border border-white/10 rounded-2xl p-6 mb-6">
+        <h2 className="text-lg font-bold font-code text-zinc-100 mb-4">
           O que o script faz
         </h2>
-        <div className="space-y-3">
-          {[
-            { tool: 'Syft', desc: 'Gera SBOM (Software Bill of Materials) do projeto' },
-            { tool: 'Grype', desc: 'Escaneia dependências em busca de CVEs conhecidos' },
-            { tool: 'Semgrep', desc: 'Analisa o código estaticamente com regras de segurança' },
-            { tool: 'Gitleaks', desc: 'Detecta secrets e credenciais expostas no código' },
-          ].map((item, i) => (
-            <div key={i} className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-full bg-green-500/15 border border-green-500/30 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
-              </div>
-              <div>
-                <span className="text-green-300/80 font-code text-sm font-semibold">{item.tool}</span>
-                <span className="text-slate-400 text-sm ml-2">— {item.desc}</span>
-              </div>
-            </div>
-          ))}
-          <div className="border-t border-slate-800/60 pt-3 mt-1">
-            <div className="flex items-start gap-3">
-              <div className="w-5 h-5 rounded-full bg-slate-800/60 border border-slate-700 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <svg className="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-              </div>
-              <div>
-                <span className="text-slate-300 font-code text-sm font-semibold">Envio automático</span>
-                <span className="text-slate-500 text-sm ml-2">— resultados enviados ao servidor e score calculado</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ul className="space-y-2 list-disc list-inside text-sm text-zinc-400">
+          <li><span className="text-zinc-300 font-code font-semibold">Syft</span> — Gera SBOM (Software Bill of Materials) do projeto</li>
+          <li><span className="text-zinc-300 font-code font-semibold">Grype</span> — Escaneia dependências em busca de CVEs conhecidos</li>
+          <li><span className="text-zinc-300 font-code font-semibold">Semgrep</span> — Analisa o código estaticamente com regras de segurança</li>
+          <li><span className="text-zinc-300 font-code font-semibold">Gitleaks</span> — Detecta secrets e credenciais expostas no código</li>
+          <li><span className="text-zinc-300 font-code font-semibold">Envio automático</span> — resultados enviados ao servidor e score calculado</li>
+        </ul>
       </div>
+
     </div>
   )
 }
