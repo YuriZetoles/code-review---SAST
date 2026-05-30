@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # =============================================================
-#  scan.sh — SAST Arena Scanner
+#  scan.sh -- SAST Arena Scanner
 #  Ferramentas: Syft + Grype (SCA), Semgrep (SAST),
 #               Gitleaks (secrets), Trivy (IaC/misconfig)
 #  Uso bare-metal: ./scan.sh --group "G1" --name "app" --path ./ --api-url https://...
-#  Uso Docker    : docker run --rm -v "$(pwd):/scan" yurizetoles/sast-arena-scanner --group "G1" --name "app"
+#  Uso Docker    : docker run --rm -it -v "$(pwd):/scan" yurizetoles/sast-arena-scanner
 # =============================================================
 
 set -euo pipefail
@@ -14,8 +14,17 @@ RED='\033[0;31m'
 YELLOW='\033[1;33m'
 GREEN='\033[0;32m'
 CYAN='\033[0;36m'
+DIM='\033[2m'
 BOLD='\033[1m'
 RESET='\033[0m'
+
+# --- Helpers de output ---
+info()    { echo -e "  ${DIM}>${RESET} $*"; }
+ok()      { echo -e "  ${GREEN}+${RESET} $*"; }
+warn()    { echo -e "  ${YELLOW}!${RESET} $*"; }
+fail()    { echo -e "  ${RED}x${RESET} $*"; }
+section() { echo -e "\n${BOLD}${CYAN}:: ${RESET}${BOLD}$*${RESET}"; }
+divider() { echo -e "${DIM}────────────────────────────────────────${RESET}"; }
 
 # --- Defaults ---
 GROUP_NAME=""
@@ -50,7 +59,7 @@ run_tool() {
   local label="$1" fallback="$2" outfile="$3"
   shift 3
   if ! "$@" > "$outfile" 2>/tmp/sast_err.log; then
-    echo -e "  ${YELLOW}⚠${RESET} $label falhou — usando fallback vazio"
+    warn "$label falhou -- usando fallback vazio"
     printf '%s' "$fallback" > "$outfile"
   fi
 }
@@ -76,49 +85,50 @@ fi
 
 # --- Validações ---
 if [[ -z "$GROUP_NAME" || -z "$PROJECT_NAME" ]]; then
-  echo -e "${RED}Erro: grupo e nome do projeto são obrigatórios.${RESET}"
+  fail "grupo e nome do projeto sao obrigatorios."
   exit 1
 fi
 
 if [[ -z "$API_URL" ]]; then
-  echo -e "${RED}Erro: --api-url é obrigatório (ou defina SAST_API_URL).${RESET}"
+  fail "--api-url e obrigatorio (ou defina SAST_API_URL)."
   exit 1
 fi
 
 if [[ ! -d "$PROJECT_PATH" ]]; then
-  echo -e "${RED}Erro: diretório '$PROJECT_PATH' não existe.${RESET}"
+  fail "diretorio '$PROJECT_PATH' nao existe."
   exit 1
 fi
 
-# --- git safe.directory (necessário dentro de container) ---
+# --- git safe.directory (necessario dentro de container) ---
 git config --global --add safe.directory '*' 2>/dev/null || true
 
 # --- Header ---
-echo -e "\n${BOLD}${CYAN}========================================${RESET}"
-echo -e "${BOLD}${CYAN}  🔒 SAST Arena Scanner${RESET}"
-echo -e "${BOLD}${CYAN}========================================${RESET}\n"
-echo -e "  Grupo    : ${BOLD}${GROUP_NAME}${RESET}"
-echo -e "  Projeto  : ${BOLD}${PROJECT_NAME}${RESET}"
-echo -e "  Diretório: ${PROJECT_PATH}\n"
+echo ""
+divider
+echo -e "  ${BOLD}SAST Arena Scanner${RESET}"
+divider
+info "Grupo    : ${BOLD}${GROUP_NAME}${RESET}"
+info "Projeto  : ${BOLD}${PROJECT_NAME}${RESET}"
+info "Diretorio: ${PROJECT_PATH}"
 
-# --- Verificar dependências ---
-echo -e "${BOLD}Verificando dependências...${RESET}"
+# --- Verificar dependencias ---
+section "Verificando dependencias"
 MISSING=0
 for cmd in syft grype semgrep gitleaks trivy jq curl; do
   if command -v "$cmd" &>/dev/null; then
-    echo -e "  ${GREEN}✔${RESET} $cmd"
+    ok "$cmd"
   else
-    echo -e "  ${RED}✘ $cmd não encontrado${RESET}"
+    fail "$cmd nao encontrado"
     MISSING=1
   fi
 done
 if [[ "$MISSING" -eq 1 ]]; then
-  echo -e "\n${RED}Instale as dependências acima.${RESET}\n"
+  echo ""
+  fail "Instale as dependencias acima."
   exit 1
 fi
-echo ""
 
-# --- Versões ---
+# --- Versoes ---
 SYFT_VERSION=$(syft --version 2>/dev/null | awk '{print $2}' || echo "unknown")
 GRYPE_VERSION=$(grype version 2>/dev/null | grep "^Version" | awk '{print $2}' || echo "unknown")
 SEMGREP_VERSION=$(semgrep --version 2>/dev/null || echo "unknown")
@@ -134,9 +144,9 @@ if git -C "$PROJECT_PATH" rev-parse --short HEAD &>/dev/null; then
 fi
 
 # --- [1/4] SCA: Syft + Grype ---
-echo -e "${BOLD}[1/4] SCA — Syft + Grype (CVEs)...${RESET}"
-echo -e "  Atualizando base de CVEs..."
-grype db update 2>/dev/null || echo -e "  ${YELLOW}⚠${RESET} db update falhou — usando base local"
+section "[1/4] SCA -- Syft + Grype"
+info "Atualizando base de CVEs..."
+grype db update 2>/dev/null || warn "db update falhou -- usando base local"
 
 run_tool "syft" \
   '{"artifacts":[],"matches":[]}' \
@@ -149,10 +159,10 @@ run_tool "grype" \
   grype sbom:"$SBOM_FILE" -o json
 
 GRYPE_COUNT=$(jq '.matches | length' "$GRYPE_FILE" 2>/dev/null || echo 0)
-echo -e "  ${GREEN}✔${RESET} ${GRYPE_COUNT} CVEs encontrados\n"
+ok "${GRYPE_COUNT} CVEs encontrados"
 
 # --- [2/4] SAST: Semgrep (background) ---
-echo -e "${BOLD}[2/4] SAST — Semgrep...${RESET}"
+section "[2/4] SAST -- Semgrep"
 semgrep \
   --config=p/security-audit \
   --config=p/owasp-top-ten \
@@ -174,7 +184,7 @@ semgrep \
 SEMGREP_PID=$!
 
 # --- [3/4] Secrets: Gitleaks (background) ---
-echo -e "${BOLD}[3/4] Secrets — Gitleaks...${RESET}"
+section "[3/4] Secrets -- Gitleaks"
 gitleaks detect \
   --source "$PROJECT_PATH" \
   --report-format json \
@@ -185,7 +195,7 @@ gitleaks detect \
 GITLEAKS_PID=$!
 
 # --- [4/4] IaC: Trivy (background) ---
-echo -e "${BOLD}[4/4] IaC/Misconfig — Trivy...${RESET}"
+section "[4/4] IaC/Misconfig -- Trivy"
 trivy fs \
   --scanners misconfig \
   --format json \
@@ -201,24 +211,24 @@ if [[ ! -f "$SEMGREP_FILE" ]] || ! jq -e '.results' "$SEMGREP_FILE" &>/dev/null;
   echo '{"results":[]}' > "$SEMGREP_FILE"
 fi
 SEMGREP_COUNT=$(jq '.results | length' "$SEMGREP_FILE")
-echo -e "  ${GREEN}✔${RESET} ${SEMGREP_COUNT} findings encontrados\n"
+ok "${SEMGREP_COUNT} findings encontrados"
 
 wait $GITLEAKS_PID
 if [[ ! -f "$GITLEAKS_FILE" ]]; then
   echo '[]' > "$GITLEAKS_FILE"
 fi
 GITLEAKS_COUNT=$(jq '. | length' "$GITLEAKS_FILE")
-echo -e "  ${GREEN}✔${RESET} ${GITLEAKS_COUNT} secrets encontrados\n"
+ok "${GITLEAKS_COUNT} secrets encontrados"
 
 wait $TRIVY_PID
 if [[ ! -f "$TRIVY_FILE" ]] || ! jq -e '.Results' "$TRIVY_FILE" &>/dev/null; then
   echo '{"SchemaVersion":2,"Results":[]}' > "$TRIVY_FILE"
 fi
 TRIVY_COUNT=$(jq '[.Results[]?.Misconfigurations // [] | .[]] | length' "$TRIVY_FILE" 2>/dev/null || echo 0)
-echo -e "  ${GREEN}✔${RESET} ${TRIVY_COUNT} misconfigs encontradas\n"
+ok "${TRIVY_COUNT} misconfigs encontradas"
 
 # --- Montar payload ---
-echo -e "${BOLD}Enviando resultados...${RESET}"
+section "Enviando resultados"
 REPO_URL_ARG="null"
 if [[ -n "$REPO_URL" ]]; then
   REPO_URL_ARG="\"$REPO_URL\""
@@ -259,7 +269,7 @@ jq -n \
 RESPONSE=$(curl -s --fail --max-time 30 -X POST "${API_URL}/api/submissions" \
   -H "Content-Type: application/json" \
   -d @"$PAYLOAD_FILE") || {
-  echo -e "\n${RED}Erro: API inacessível ou timeout (${API_URL}).${RESET}"
+  fail "API inacessivel ou timeout (${API_URL})."
   exit 1
 }
 
@@ -268,16 +278,12 @@ SCORE=$(echo "$RESPONSE" | jq -r '.score // "erro"')
 BREAKDOWN=$(echo "$RESPONSE" | jq -r '.breakdown // {}')
 
 if [[ "$SCORE" == "erro" ]]; then
-  echo -e "\n${RED}Erro ao enviar para a API:${RESET}"
+  fail "Erro ao enviar para a API:"
   echo "$RESPONSE" | jq .
   exit 1
 fi
 
 ELAPSED=$(( SECONDS - START_TIME ))
-
-echo -e "\n${BOLD}========================================${RESET}"
-echo -e "${BOLD}  📊 Resultado — ${GROUP_NAME} / ${PROJECT_NAME}${RESET}"
-echo -e "${BOLD}========================================${RESET}"
 
 if [[ "$SCORE" -ge 80 ]]; then
   COLOR="${GREEN}"
@@ -287,12 +293,18 @@ else
   COLOR="${RED}"
 fi
 
-echo -e "  Score: ${COLOR}${BOLD}${SCORE}/100${RESET}\n"
+echo ""
+divider
+echo -e "  ${BOLD}Resultado -- ${GROUP_NAME} / ${PROJECT_NAME}${RESET}"
+divider
+echo -e "  Score          : ${COLOR}${BOLD}${SCORE}/100${RESET}"
 echo -e "  CVEs Critical  : $(echo "$BREAKDOWN" | jq -r '.critical')"
 echo -e "  CVEs High      : $(echo "$BREAKDOWN" | jq -r '.high')"
 echo -e "  CVEs Medium    : $(echo "$BREAKDOWN" | jq -r '.medium')"
 echo -e "  CVEs Low       : $(echo "$BREAKDOWN" | jq -r '.low')"
 echo -e "  Secrets        : $(echo "$BREAKDOWN" | jq -r '.secrets')"
 echo -e "  Misconfigs     : $(echo "$BREAKDOWN" | jq -r '.misconfigs // 0')"
-echo -e "\n  Tempo total    : ${ELAPSED}s"
-echo -e "\n${GREEN}${BOLD}✅ Enviado! Verifique o ranking em: ${API_URL}${RESET}\n"
+echo -e "  Tempo total    : ${ELAPSED}s"
+divider
+ok "Enviado. Ranking: ${API_URL}"
+echo ""
