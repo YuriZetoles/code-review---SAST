@@ -70,6 +70,10 @@ export function RankingTable({ entries }: RankingTableProps) {
             <th className="px-4 py-3 text-left text-xs font-code text-slate-500 uppercase tracking-widest">Projeto</th>
             <th className="px-4 py-3 text-left text-xs font-code text-slate-500 uppercase tracking-widest hidden md:table-cell">Versão</th>
             <th className="px-4 py-3 text-left text-xs font-code text-slate-500 uppercase tracking-widest w-52">Score</th>
+            <th className="px-4 py-3 text-center text-xs font-code text-slate-500 uppercase tracking-widest hidden lg:table-cell">CVEs</th>
+            <th className="px-4 py-3 text-center text-xs font-code text-slate-500 uppercase tracking-widest hidden lg:table-cell">SAST</th>
+            <th className="px-4 py-3 text-center text-xs font-code text-slate-500 uppercase tracking-widest hidden lg:table-cell">Secrets</th>
+            <th className="px-4 py-3 text-center text-xs font-code text-slate-500 uppercase tracking-widest hidden lg:table-cell">Misconfigs</th>
             <th className="px-4 py-3 text-right text-xs font-code text-slate-500 uppercase tracking-widest hidden sm:table-cell">Enviado</th>
           </tr>
         </thead>
@@ -107,6 +111,18 @@ export function RankingTable({ entries }: RankingTableProps) {
                   </span>
                   <ScoreBar score={entry.score} showLabel={false} />
                 </div>
+              </td>
+              <td className="px-4 py-4 text-center hidden lg:table-cell">
+                <span className="text-xs font-code text-cyan-400/80">{entry.cves ?? 0}</span>
+              </td>
+              <td className="px-4 py-4 text-center hidden lg:table-cell">
+                <span className="text-xs font-code text-violet-400/80">{entry.sast ?? 0}</span>
+              </td>
+              <td className="px-4 py-4 text-center hidden lg:table-cell">
+                <span className="text-xs font-code text-red-400/80">{entry.secrets ?? 0}</span>
+              </td>
+              <td className="px-4 py-4 text-center hidden lg:table-cell">
+                <span className="text-xs font-code text-pink-400/80">{entry.misconfigs ?? 0}</span>
               </td>
               <td className="px-4 py-4 text-right hidden sm:table-cell">
                 <span className="text-xs text-slate-600 font-code">
