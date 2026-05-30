@@ -1,19 +1,27 @@
 FROM python:3.12-slim
 
+# Versões fixadas onde possível
+# syft/grype/trivy: pinados via install script abaixo
+# Para atualizar: trocar os ARGs ou rodar: docker build --build-arg X_VERSION=vX.Y.Z
+ARG GITLEAKS_VERSION=8.21.2
+ARG SEMGREP_VERSION=1.99.0
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl git jq ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir semgrep
+RUN pip install --no-cache-dir semgrep==${SEMGREP_VERSION}
 
-RUN curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+RUN curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh \
+    | sh -s -- -b /usr/local/bin
 
-RUN curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+RUN curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh \
+    | sh -s -- -b /usr/local/bin
 
-RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+RUN curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+    | sh -s -- -b /usr/local/bin
 
 RUN set -eux; \
-    GITLEAKS_VERSION=8.21.2; \
     ARCH="$(dpkg --print-architecture)"; \
     case "$ARCH" in \
       amd64) GL_ARCH=x64 ;; \

@@ -154,6 +154,7 @@ semgrep \
   --config=p/insecure-transport \
   --config=p/jwt \
   --timeout 30 \
+  --max-memory 2048 \
   --exclude node_modules \
   --exclude vendor \
   --exclude dist \
