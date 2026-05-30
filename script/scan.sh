@@ -10,20 +10,16 @@
 set -euo pipefail
 
 # --- Cores ---
-RED='\033[0;31m'
-YELLOW='\033[1;33m'
-GREEN='\033[0;32m'
-CYAN='\033[0;36m'
 DIM='\033[2m'
 BOLD='\033[1m'
 RESET='\033[0m'
 
 # --- Helpers de output ---
 info()    { echo -e "  ${DIM}>${RESET} $*"; }
-ok()      { echo -e "  ${GREEN}+${RESET} $*"; }
-warn()    { echo -e "  ${YELLOW}!${RESET} $*"; }
-fail()    { echo -e "  ${RED}x${RESET} $*"; }
-section() { echo -e "\n${BOLD}${CYAN}:: ${RESET}${BOLD}$*${RESET}"; }
+ok()      { echo -e "  ${BOLD}+${RESET} $*"; }
+warn()    { echo -e "  ${BOLD}!${RESET} $*"; }
+fail()    { echo -e "  ${BOLD}x${RESET} $*"; }
+section() { echo -e "\n${BOLD}:: $*${RESET}"; }
 divider() { echo -e "${DIM}────────────────────────────────────────${RESET}"; }
 
 # --- Defaults ---
@@ -75,13 +71,24 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# --- Header (limpa tela se modo interativo) ---
+if [[ -z "$GROUP_NAME" || -z "$PROJECT_NAME" ]]; then
+  clear
+fi
+echo ""
+divider
+echo -e "  ${BOLD}SAST Arena Scanner${RESET}"
+divider
+echo ""
+
 # --- Prompt interativo se args não fornecidos ---
 if [[ -z "$GROUP_NAME" ]]; then
-  read -rp $'\e[1m\e[0;36mNome do grupo (ex: Grupo 1):\e[0m ' GROUP_NAME
+  read -rp $'\e[1mGrupo   :\e[0m ' GROUP_NAME
 fi
 if [[ -z "$PROJECT_NAME" ]]; then
-  read -rp $'\e[1m\e[0;36mNome do projeto (ex: meu-app):\e[0m ' PROJECT_NAME
+  read -rp $'\e[1mProjeto :\e[0m ' PROJECT_NAME
 fi
+echo ""
 
 # --- Validações ---
 if [[ -z "$GROUP_NAME" || -z "$PROJECT_NAME" ]]; then
@@ -102,10 +109,6 @@ fi
 # --- git safe.directory (necessario dentro de container) ---
 git config --global --add safe.directory '*' 2>/dev/null || true
 
-# --- Header ---
-echo ""
-divider
-echo -e "  ${BOLD}SAST Arena Scanner${RESET}"
 divider
 info "Grupo    : ${BOLD}${GROUP_NAME}${RESET}"
 info "Projeto  : ${BOLD}${PROJECT_NAME}${RESET}"
@@ -285,19 +288,11 @@ fi
 
 ELAPSED=$(( SECONDS - START_TIME ))
 
-if [[ "$SCORE" -ge 80 ]]; then
-  COLOR="${GREEN}"
-elif [[ "$SCORE" -ge 50 ]]; then
-  COLOR="${YELLOW}"
-else
-  COLOR="${RED}"
-fi
-
 echo ""
 divider
 echo -e "  ${BOLD}Resultado -- ${GROUP_NAME} / ${PROJECT_NAME}${RESET}"
 divider
-echo -e "  Score          : ${COLOR}${BOLD}${SCORE}/100${RESET}"
+echo -e "  Score          : ${BOLD}${SCORE}/100${RESET}"
 echo -e "  CVEs Critical  : $(echo "$BREAKDOWN" | jq -r '.critical')"
 echo -e "  CVEs High      : $(echo "$BREAKDOWN" | jq -r '.high')"
 echo -e "  CVEs Medium    : $(echo "$BREAKDOWN" | jq -r '.medium')"
