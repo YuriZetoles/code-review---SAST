@@ -2,12 +2,12 @@ import { useState } from 'react'
 import type { Vulnerability } from '../types.js'
 
 const SEVERITY_STYLE: Record<string, { badge: string; dot: string }> = {
-  critical: { badge: 'text-red-400 bg-red-500/10 border border-red-500/30',   dot: 'bg-red-500' },
-  high:     { badge: 'text-orange-400 bg-orange-500/10 border border-orange-500/30', dot: 'bg-orange-400' },
-  medium:   { badge: 'text-yellow-400 bg-yellow-500/10 border border-yellow-500/30', dot: 'bg-yellow-400' },
-  low:      { badge: 'text-blue-400 bg-blue-500/10 border border-blue-500/30',  dot: 'bg-blue-400' },
-  negligible: { badge: 'text-slate-400 bg-slate-800 border border-slate-700',  dot: 'bg-slate-600' },
-  unknown:  { badge: 'text-slate-400 bg-slate-800 border border-slate-700',    dot: 'bg-slate-600' },
+  critical:   { badge: 'text-red-400 bg-red-500/10 border border-red-500/30',       dot: 'bg-red-500' },
+  high:       { badge: 'text-orange-400 bg-orange-500/10 border border-orange-500/30', dot: 'bg-orange-400' },
+  medium:     { badge: 'text-yellow-400 bg-yellow-500/10 border border-yellow-500/30', dot: 'bg-yellow-400' },
+  low:        { badge: 'text-blue-400 bg-blue-500/10 border border-blue-500/30',     dot: 'bg-blue-400' },
+  negligible: { badge: 'text-slate-400 bg-slate-800 border border-slate-700',        dot: 'bg-slate-600' },
+  unknown:    { badge: 'text-slate-400 bg-slate-800 border border-slate-700',        dot: 'bg-slate-600' },
 }
 
 const SEVERITY_ORDER = ['critical', 'high', 'medium', 'low', 'negligible', 'unknown']
@@ -18,6 +18,15 @@ const TOOL_BADGE: Record<string, string> = {
   gitleaks: 'text-red-400 bg-red-500/10 border-red-500/30',
   trivy:    'text-pink-400 bg-pink-500/10 border-pink-500/30',
 }
+
+const TOOL_FILTER_STYLE: Record<string, string> = {
+  grype:    'text-cyan-400 bg-cyan-500/15 border border-cyan-500/40',
+  semgrep:  'text-violet-400 bg-violet-500/15 border border-violet-500/40',
+  gitleaks: 'text-red-400 bg-red-500/15 border border-red-500/40',
+  trivy:    'text-pink-400 bg-pink-500/15 border border-pink-500/40',
+}
+
+const PAGE_SIZE = 50
 
 interface VulnListProps {
   vulns: Vulnerability[]
@@ -35,26 +44,43 @@ function ChevronIcon({ open }: { open: boolean }) {
 }
 
 export function VulnList({ vulns }: VulnListProps) {
-  const [expanded, setExpanded] = useState<string | null>(null)
-  const [filter, setFilter] = useState<string>('all')
+  const [expanded, setExpanded]       = useState<string | null>(null)
+  const [filterSev, setFilterSev]     = useState<string>('all')
+  const [filterTool, setFilterTool]   = useState<string>('all')
+  const [onlyFixed, setOnlyFixed]     = useState(false)
+  const [page, setPage]               = useState(0)
 
-  const counts = vulns.reduce<Record<string, number>>((acc, v) => {
+  function resetPage() { setPage(0); setExpanded(null) }
+
+  const sevCounts = vulns.reduce<Record<string, number>>((acc, v) => {
     acc[v.severity] = (acc[v.severity] ?? 0) + 1
     return acc
   }, {})
 
-  const activeSeverities = SEVERITY_ORDER.filter(s => counts[s] > 0)
-  const filtered = filter === 'all' ? vulns : vulns.filter(v => v.severity === filter)
+  const toolCounts = vulns.reduce<Record<string, number>>((acc, v) => {
+    acc[v.tool] = (acc[v.tool] ?? 0) + 1
+    return acc
+  }, {})
+
+  const activeSeverities = SEVERITY_ORDER.filter(s => sevCounts[s] > 0)
+  const activeTools = ['grype', 'semgrep', 'gitleaks', 'trivy'].filter(t => toolCounts[t] > 0)
+
+  const filtered = vulns
+    .filter(v => filterSev === 'all'  || v.severity === filterSev)
+    .filter(v => filterTool === 'all' || v.tool === filterTool)
+    .filter(v => !onlyFixed || v.fix_available !== null)
+
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
+  const paginated  = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
 
   return (
     <div>
-
-      {/* Filter bar */}
-      <div className="flex flex-wrap gap-2 mb-5">
+      {/* Filtro de severidade */}
+      <div className="flex flex-wrap gap-2 mb-3">
         <button
-          onClick={() => setFilter('all')}
+          onClick={() => { setFilterSev('all'); resetPage() }}
           className={`px-3 py-1.5 rounded-lg text-xs font-code transition-all duration-150 cursor-pointer ${
-            filter === 'all'
+            filterSev === 'all'
               ? 'bg-green-500/15 text-green-400 border border-green-500/40'
               : 'bg-slate-800/60 text-slate-500 border border-slate-700/60 hover:border-slate-600 hover:text-slate-300'
           }`}
@@ -67,16 +93,54 @@ export function VulnList({ vulns }: VulnListProps) {
           return (
             <button
               key={s}
-              onClick={() => setFilter(s)}
+              onClick={() => { setFilterSev(s); resetPage() }}
               className={`px-3 py-1.5 rounded-lg text-xs font-code transition-all duration-150 cursor-pointer ${
-                filter === s ? style.badge : 'bg-slate-800/60 text-slate-500 border border-slate-700/60 hover:border-slate-600 hover:text-slate-300'
+                filterSev === s ? style.badge : 'bg-slate-800/60 text-slate-500 border border-slate-700/60 hover:border-slate-600 hover:text-slate-300'
               }`}
             >
               {s}
-              <span className="ml-1.5 opacity-60">{counts[s]}</span>
+              <span className="ml-1.5 opacity-60">{sevCounts[s]}</span>
             </button>
           )
         })}
+      </div>
+
+      {/* Filtro de ferramenta + só com fix */}
+      <div className="flex flex-wrap gap-2 mb-5">
+        <button
+          onClick={() => { setFilterTool('all'); resetPage() }}
+          className={`px-3 py-1.5 rounded-lg text-xs font-code transition-all duration-150 cursor-pointer ${
+            filterTool === 'all'
+              ? 'bg-slate-700/60 text-slate-300 border border-slate-600/60'
+              : 'bg-slate-800/60 text-slate-500 border border-slate-700/60 hover:border-slate-600 hover:text-slate-300'
+          }`}
+        >
+          todas tools
+        </button>
+        {activeTools.map(t => (
+          <button
+            key={t}
+            onClick={() => { setFilterTool(t); resetPage() }}
+            className={`px-3 py-1.5 rounded-lg text-xs font-code border transition-all duration-150 cursor-pointer ${
+              filterTool === t
+                ? TOOL_FILTER_STYLE[t] ?? 'text-slate-300 bg-slate-700 border-slate-600'
+                : 'bg-slate-800/60 text-slate-500 border-slate-700/60 hover:border-slate-600 hover:text-slate-300'
+            }`}
+          >
+            {t}
+            <span className="ml-1.5 opacity-60">{toolCounts[t]}</span>
+          </button>
+        ))}
+        <button
+          onClick={() => { setOnlyFixed(v => !v); resetPage() }}
+          className={`px-3 py-1.5 rounded-lg text-xs font-code border transition-all duration-150 cursor-pointer ml-auto ${
+            onlyFixed
+              ? 'text-green-400 bg-green-500/15 border-green-500/40'
+              : 'bg-slate-800/60 text-slate-500 border-slate-700/60 hover:border-slate-600 hover:text-slate-300'
+          }`}
+        >
+          só com fix
+        </button>
       </div>
 
       {filtered.length === 0 && (
@@ -89,7 +153,7 @@ export function VulnList({ vulns }: VulnListProps) {
       )}
 
       <div className="space-y-1.5">
-        {filtered.map(v => {
+        {paginated.map(v => {
           const style = SEVERITY_STYLE[v.severity] ?? SEVERITY_STYLE.unknown
           const isOpen = expanded === v.id
           return (
@@ -149,6 +213,31 @@ export function VulnList({ vulns }: VulnListProps) {
           )
         })}
       </div>
+
+      {/* Paginação */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-5 pt-4 border-t border-slate-800/60">
+          <span className="text-xs text-slate-500 font-code">
+            {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, filtered.length)} de {filtered.length}
+          </span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setPage(p => p - 1); setExpanded(null) }}
+              disabled={page === 0}
+              className="px-3 py-1.5 rounded-lg text-xs font-code border border-slate-700/60 text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed hover:border-slate-600 hover:text-slate-300 transition-all cursor-pointer"
+            >
+              ← anterior
+            </button>
+            <button
+              onClick={() => { setPage(p => p + 1); setExpanded(null) }}
+              disabled={page >= totalPages - 1}
+              className="px-3 py-1.5 rounded-lg text-xs font-code border border-slate-700/60 text-slate-400 disabled:opacity-30 disabled:cursor-not-allowed hover:border-slate-600 hover:text-slate-300 transition-all cursor-pointer"
+            >
+              próxima →
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
