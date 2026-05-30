@@ -1,10 +1,10 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 RUN npm install -g pnpm
-COPY package.json pnpm-workspace.yaml ./
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY api/package.json ./api/
 COPY web/package.json ./web/
-RUN pnpm install --ignore-scripts
+RUN pnpm install --frozen-lockfile --ignore-scripts
 COPY web/ ./web/
 ARG VITE_API_URL=""
 ENV VITE_API_URL=$VITE_API_URL
