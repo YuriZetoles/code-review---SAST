@@ -68,12 +68,10 @@ done
 
 # --- Prompt interativo se args não fornecidos ---
 if [[ -z "$GROUP_NAME" ]]; then
-  echo -e "${BOLD}${CYAN}Nome do grupo (ex: Grupo 1):${RESET} "
-  read -r GROUP_NAME
+  read -rp $'\e[1m\e[0;36mNome do grupo (ex: Grupo 1):\e[0m ' GROUP_NAME
 fi
 if [[ -z "$PROJECT_NAME" ]]; then
-  echo -e "${BOLD}${CYAN}Nome do projeto (ex: meu-app):${RESET} "
-  read -r PROJECT_NAME
+  read -rp $'\e[1m\e[0;36mNome do projeto (ex: meu-app):\e[0m ' PROJECT_NAME
 fi
 
 # --- Validações ---
