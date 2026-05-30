@@ -66,9 +66,19 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+# --- Prompt interativo se args não fornecidos ---
+if [[ -z "$GROUP_NAME" ]]; then
+  echo -e "${BOLD}${CYAN}Nome do grupo (ex: Grupo 1):${RESET} "
+  read -r GROUP_NAME
+fi
+if [[ -z "$PROJECT_NAME" ]]; then
+  echo -e "${BOLD}${CYAN}Nome do projeto (ex: meu-app):${RESET} "
+  read -r PROJECT_NAME
+fi
+
 # --- Validações ---
 if [[ -z "$GROUP_NAME" || -z "$PROJECT_NAME" ]]; then
-  echo -e "${RED}Uso: $0 --group <nome> --name <projeto> [--path <dir>] [--api-url <url>]${RESET}"
+  echo -e "${RED}Erro: grupo e nome do projeto são obrigatórios.${RESET}"
   exit 1
 fi
 
