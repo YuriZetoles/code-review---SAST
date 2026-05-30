@@ -41,15 +41,22 @@ export function normalizeGrype(output: GrypeOutput): Vulnerability[] {
 }
 
 export function normalizeSemgrep(output: SemgrepOutput): Vulnerability[] {
-  return output.results.map(r => ({
-    tool: 'semgrep' as const,
-    severity: mapSemgrepSeverity(r.extra.severity),
-    vulnId: r.check_id,
-    package: r.path,
-    location: `${r.path}:${r.start.line}`,
-    description: r.extra.message,
-    fixAvailable: null,
-  }))
+  const seen = new Set<string>()
+  return output.results.reduce<Vulnerability[]>((acc, r) => {
+    const key = `${r.check_id}:${r.path}:${r.start.line}`
+    if (seen.has(key)) return acc
+    seen.add(key)
+    acc.push({
+      tool: 'semgrep' as const,
+      severity: mapSemgrepSeverity(r.extra.severity),
+      vulnId: r.check_id,
+      package: r.path,
+      location: `${r.path}:${r.start.line}`,
+      description: r.extra.message,
+      fixAvailable: null,
+    })
+    return acc
+  }, [])
 }
 
 export function normalizeGitleaks(output: GitleaksOutput): Vulnerability[] {

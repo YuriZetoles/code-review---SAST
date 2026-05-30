@@ -77,7 +77,6 @@ export async function submissionsRoutes(app: FastifyInstance) {
           grypeVersion: payload.tool_versions.grype,
           semgrepVersion: payload.tool_versions.semgrep,
           gitleaksVersion: payload.tool_versions.gitleaks,
-          rawReport: payload as any,
           submittedAt: new Date(),
         })
         .where(eq(submissions.id, existing.id))
@@ -94,7 +93,6 @@ export async function submissionsRoutes(app: FastifyInstance) {
           grypeVersion: payload.tool_versions.grype,
           semgrepVersion: payload.tool_versions.semgrep,
           gitleaksVersion: payload.tool_versions.gitleaks,
-          rawReport: payload as any,
         })
         .returning()
     }

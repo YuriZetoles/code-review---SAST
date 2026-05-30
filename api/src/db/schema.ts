@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, timestamp, integer, jsonb, text, pgEnum, uniqueIndex } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, varchar, timestamp, integer, text, pgEnum, uniqueIndex } from 'drizzle-orm/pg-core'
 
 export const toolEnum = pgEnum('tool', ['grype', 'semgrep', 'gitleaks', 'trivy'])
 export const severityEnum = pgEnum('severity', ['critical', 'high', 'medium', 'low', 'negligible', 'unknown'])
@@ -14,7 +14,6 @@ export const submissions = pgTable('submissions', {
   grypeVersion: varchar('grype_version', { length: 50 }),
   semgrepVersion: varchar('semgrep_version', { length: 50 }),
   gitleaksVersion: varchar('gitleaks_version', { length: 50 }),
-  rawReport: jsonb('raw_report').notNull(),
 }, (t) => ({
   groupProjectUniq: uniqueIndex('submissions_group_project_uniq').on(t.groupName, t.projectName),
   repoUrlUniq: uniqueIndex('submissions_repo_url_uniq').on(t.repoUrl),

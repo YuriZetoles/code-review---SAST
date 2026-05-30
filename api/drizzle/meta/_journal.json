@@ -29,6 +29,13 @@
       "when": 1780015000000,
       "tag": "0003_add_trivy_tool",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1780020000000,
+      "tag": "0004_remove_raw_report",
+      "breakpoints": true
     }
   ]
 }
