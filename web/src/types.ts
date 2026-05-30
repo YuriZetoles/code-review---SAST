@@ -6,6 +6,10 @@ export interface RankingEntry {
   project_version: string
   score: number
   submitted_at: string
+  cves: number
+  sast: number
+  secrets: number
+  misconfigs: number
 }
 
 export interface Vulnerability {

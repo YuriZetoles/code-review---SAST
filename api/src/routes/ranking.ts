@@ -5,10 +5,22 @@ import { desc, eq } from 'drizzle-orm'
 import { rankingBus } from '../events.js'
 
 async function fetchRanking() {
-  const rows = await db
-    .select()
-    .from(submissions)
-    .orderBy(desc(submissions.score), submissions.submittedAt)
+  const [rows, vulnRows] = await Promise.all([
+    db.select().from(submissions).orderBy(desc(submissions.score), submissions.submittedAt),
+    db.select({ submissionId: vulnerabilities.submissionId, tool: vulnerabilities.tool }).from(vulnerabilities),
+  ])
+
+  const breakdown = new Map<string, { cves: number; sast: number; secrets: number; misconfigs: number }>()
+  for (const v of vulnRows) {
+    if (!breakdown.has(v.submissionId)) {
+      breakdown.set(v.submissionId, { cves: 0, sast: 0, secrets: 0, misconfigs: 0 })
+    }
+    const b = breakdown.get(v.submissionId)!
+    if (v.tool === 'grype') b.cves++
+    else if (v.tool === 'semgrep') b.sast++
+    else if (v.tool === 'gitleaks') b.secrets++
+    else if (v.tool === 'trivy') b.misconfigs++
+  }
 
   return rows.map((s, index) => ({
     rank: index + 1,
@@ -18,6 +30,7 @@ async function fetchRanking() {
     project_version: s.projectVersion,
     score: s.score,
     submitted_at: s.submittedAt,
+    ...(breakdown.get(s.id) ?? { cves: 0, sast: 0, secrets: 0, misconfigs: 0 }),
   }))
 }
 
