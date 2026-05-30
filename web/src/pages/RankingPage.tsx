@@ -3,29 +3,13 @@ import { api } from '../lib/api.js'
 import { RankingTable } from '../components/RankingTable.js'
 import type { RankingEntry } from '../types.js'
 
-function useRelativeTime(date: Date) {
-  const [, setTick] = useState(0)
-  useEffect(() => {
-    const t = setInterval(() => setTick(n => n + 1), 1000)
-    return () => clearInterval(t)
-  }, [])
-
-  const secs = Math.floor((Date.now() - date.getTime()) / 1000)
-  if (secs < 5) return 'agora mesmo'
-  if (secs < 60) return `há ${secs}s`
-  const mins = Math.floor(secs / 60)
-  return `há ${mins}min`
-}
-
 export function RankingPage() {
   const [entries, setEntries] = useState<RankingEntry[]>([])
-  const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
+  const [now, setNow] = useState<Date>(new Date())
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [connected, setConnected] = useState(false)
   const esRef = useRef<EventSource | null>(null)
-
-  const relativeTime = useRelativeTime(lastUpdate)
 
   useEffect(() => {
     let fallbackInterval: ReturnType<typeof setInterval> | null = null
@@ -34,7 +18,6 @@ export function RankingPage() {
     function applyData(data: RankingEntry[]) {
       if (!mounted) return
       setEntries(data)
-      setLastUpdate(new Date())
       setError(null)
       setLoading(false)
     }
@@ -76,64 +59,70 @@ export function RankingPage() {
         setConnected(false)
         es.close()
         startFallbackPolling()
-        // reconnect after 5s
         setTimeout(() => { if (mounted) connect() }, 5000)
       }
     }
 
     connect()
+    const clockInterval = setInterval(() => setNow(new Date()), 1000)
 
     return () => {
       mounted = false
       esRef.current?.close()
       if (fallbackInterval) clearInterval(fallbackInterval)
+      clearInterval(clockInterval)
     }
   }, [])
 
   const topScore = entries[0]?.score ?? null
   const totalTeams = entries.length
+  const avgScore = totalTeams > 0 ? Math.round(entries.reduce((sum, e) => sum + e.score, 0) / totalTeams) : null
+  const minScore = totalTeams > 0 ? entries[entries.length - 1].score : null
 
   return (
     <div>
       <div className="mb-8">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-3xl font-bold font-code text-slate-100">
+            <h1 className="text-3xl font-bold font-code text-zinc-100">
               Ranking{' '}
-              <span className="text-green-400 neon-text">ao vivo</span>
+              <span className="text-white">ao vivo</span>
             </h1>
-            <p className="text-slate-500 text-sm mt-1">
+            <p className="text-zinc-500 text-sm mt-1">
               Atualiza instantaneamente quando alguém envia um scan
             </p>
           </div>
-          <div className="flex items-center gap-2 text-xs font-code">
-            <span className={`w-1.5 h-1.5 rounded-full inline-block ${connected ? 'bg-green-400 live-dot' : 'bg-yellow-500'}`} />
-            <span className={connected ? 'text-slate-500' : 'text-yellow-500'}>
-              {connected ? `atualizado ${relativeTime}` : `polling — ${relativeTime}`}
-            </span>
+          <div className="flex items-center gap-2 text-xs text-zinc-500 font-code">
+            <svg className="w-3.5 h-3.5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {now.toLocaleTimeString('pt-BR')}
           </div>
         </div>
 
         {totalTeams > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
-            <div className="bg-slate-900/60 border border-green-500/15 rounded-xl px-4 py-3">
-              <div className="text-xs font-code text-slate-500 uppercase tracking-widest mb-1">Grupos</div>
-              <div className="text-2xl font-bold font-code text-green-400">{totalTeams}</div>
-            </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
             {topScore !== null && (
-              <div className="bg-slate-900/60 border border-green-500/15 rounded-xl px-4 py-3">
-                <div className="text-xs font-code text-slate-500 uppercase tracking-widest mb-1">Top score</div>
-                <div className="text-2xl font-bold font-code text-green-400">{topScore}</div>
+              <div className="bg-zinc-900/60 border border-white/10 rounded-xl px-4 py-3">
+                <div className="text-xs font-code text-zinc-500 uppercase tracking-widest mb-1">Top score</div>
+                <div className="text-2xl font-bold font-code text-white">{topScore}</div>
               </div>
             )}
-            <div className="bg-slate-900/60 border border-green-500/15 rounded-xl px-4 py-3 hidden sm:block">
-              <div className="text-xs font-code text-slate-500 uppercase tracking-widest mb-1">Conexão</div>
-              <div className="flex items-center gap-2 mt-1">
-                <span className={`w-2 h-2 rounded-full inline-block ${connected ? 'bg-green-400 live-dot' : 'bg-yellow-500'}`} />
-                <span className={`text-sm font-code ${connected ? 'text-green-400' : 'text-yellow-400'}`}>
-                  {connected ? 'tempo real' : 'reconectando'}
-                </span>
+            {minScore !== null && (
+              <div className="bg-zinc-900/60 border border-white/10 rounded-xl px-4 py-3">
+                <div className="text-xs font-code text-zinc-500 uppercase tracking-widest mb-1">Menor score</div>
+                <div className="text-2xl font-bold font-code text-white">{minScore}</div>
               </div>
+            )}
+            {avgScore !== null && (
+              <div className="bg-zinc-900/60 border border-white/10 rounded-xl px-4 py-3 hidden sm:block">
+                <div className="text-xs font-code text-zinc-500 uppercase tracking-widest mb-1">Média</div>
+                <div className="text-2xl font-bold font-code text-white">{avgScore}</div>
+              </div>
+            )}
+            <div className="bg-zinc-900/60 border border-white/10 rounded-xl px-4 py-3 hidden sm:block">
+              <div className="text-xs font-code text-zinc-500 uppercase tracking-widest mb-1">Grupos</div>
+              <div className="text-2xl font-bold font-code text-white">{totalTeams}</div>
             </div>
           </div>
         )}
@@ -151,8 +140,8 @@ export function RankingPage() {
       {loading ? (
         <div className="flex items-center justify-center py-24">
           <div className="flex flex-col items-center gap-3">
-            <div className="w-8 h-8 border-2 border-green-500/30 border-t-green-400 rounded-full animate-spin" />
-            <p className="text-slate-500 text-sm font-code">conectando...</p>
+            <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+            <p className="text-zinc-500 text-sm font-code">Conectando...</p>
           </div>
         </div>
       ) : (

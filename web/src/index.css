@@ -5,12 +5,9 @@
 @tailwind utilities;
 
 :root {
-  --neon: #22C55E;
-  --neon-dim: rgba(34, 197, 94, 0.15);
-  --bg: #020617;
-  --card: #0F172A;
+  --bg: #09090b;
+  --card: #111113;
   --card-hover: #1E293B;
-  --border: rgba(34, 197, 94, 0.15);
 }
 
 * {
@@ -23,58 +20,17 @@ html {
 
 body {
   background-color: var(--bg);
-  color: #F8FAFC;
+  color: #FAFAFA;
   min-height: 100vh;
 }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #0F172A; }
-::-webkit-scrollbar-thumb { background: rgba(34, 197, 94, 0.3); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(34, 197, 94, 0.6); }
-
-/* Neon text glow */
-.neon-text {
-  text-shadow: 0 0 10px rgba(34, 197, 94, 0.8), 0 0 20px rgba(34, 197, 94, 0.4);
-}
-
-/* Neon border glow */
-.neon-border {
-  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.3), 0 0 12px rgba(34, 197, 94, 0.15);
-}
-
-/* Live pulse animation */
-@keyframes live-pulse {
-  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
-  50% { opacity: 0.8; box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
-}
-.live-dot {
-  animation: live-pulse 2s ease-in-out infinite;
-}
-
-/* Scanline overlay for header */
-.scanlines::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0, 0, 0, 0.08) 2px,
-    rgba(0, 0, 0, 0.08) 4px
-  );
-  pointer-events: none;
-  z-index: 0;
-}
-
-/* Score bar neon fill */
-@keyframes bar-fill {
-  from { width: 0; }
-}
+::-webkit-scrollbar-track { background: #111113; }
+::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.4); }
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  .live-dot { animation: none; }
   * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }

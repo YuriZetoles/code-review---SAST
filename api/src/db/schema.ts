@@ -14,6 +14,7 @@ export const submissions = pgTable('submissions', {
   grypeVersion: varchar('grype_version', { length: 50 }),
   semgrepVersion: varchar('semgrep_version', { length: 50 }),
   gitleaksVersion: varchar('gitleaks_version', { length: 50 }),
+  trivyVersion: varchar('trivy_version', { length: 50 }),
 }, (t) => ({
   groupProjectUniq: uniqueIndex('submissions_group_project_uniq').on(t.groupName, t.projectName),
   repoUrlUniq: uniqueIndex('submissions_repo_url_uniq').on(t.repoUrl),

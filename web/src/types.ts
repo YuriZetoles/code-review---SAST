@@ -34,6 +34,7 @@ export interface Submission {
   grype_version: string | null
   semgrep_version: string | null
   gitleaks_version: string | null
+  trivy_version: string | null
 }
 
 export interface SubmissionDetail {

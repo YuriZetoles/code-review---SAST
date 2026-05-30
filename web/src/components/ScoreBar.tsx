@@ -11,7 +11,7 @@ export function ScoreBar({ score, showLabel = true }: ScoreBarProps) {
 
   return (
     <div className="flex items-center gap-3">
-      <div className="flex-1 bg-slate-800 rounded-full h-1.5 overflow-hidden">
+      <div className="flex-1 bg-zinc-800 rounded-full h-1.5 overflow-hidden">
         <div
           className={`h-full rounded-full transition-all duration-700 ${color.bar} ${color.glow}`}
           style={{ width: `${score}%` }}
