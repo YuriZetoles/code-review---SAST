@@ -81,6 +81,14 @@ echo -e "  ${BOLD}SAST Arena Scanner${RESET}"
 divider
 echo ""
 
+# --- Auto-detectar nome do projeto via git remote ---
+if [[ -z "$PROJECT_NAME" ]]; then
+  _git_remote=$(git -C "$PROJECT_PATH" remote get-url origin 2>/dev/null || true)
+  if [[ -n "$_git_remote" ]]; then
+    PROJECT_NAME=$(echo "$_git_remote" | sed 's|.*/||' | sed 's|\.git$||')
+  fi
+fi
+
 # --- Prompt interativo se args não fornecidos ---
 if [[ -z "$GROUP_NAME" ]]; then
   read -rp $'\e[1mGrupo:\e[0m ' GROUP_NAME
@@ -269,20 +277,25 @@ jq -n \
     trivy: $trivy[0]
   }' > "$PAYLOAD_FILE"
 
-RESPONSE=$(curl -s --fail --max-time 30 -X POST "${API_URL}/api/submissions" \
+HTTP_CODE=$(curl -s -o /tmp/sast_response.json -w "%{http_code}" --max-time 60 -X POST "${API_URL}/api/submissions" \
   -H "Content-Type: application/json" \
-  -d @"$PAYLOAD_FILE") || {
+  -d @"$PAYLOAD_FILE") || HTTP_CODE="000"
+
+RESPONSE=$(cat /tmp/sast_response.json 2>/dev/null || echo '{}')
+rm -f /tmp/sast_response.json
+
+if [[ "$HTTP_CODE" == "000" ]]; then
   fail "API inacessivel ou timeout (${API_URL})."
   exit 1
-}
+fi
 
 # --- Exibir resultado ---
 SCORE=$(echo "$RESPONSE" | jq -r '.score // "erro"')
 BREAKDOWN=$(echo "$RESPONSE" | jq -r '.breakdown // {}')
 
-if [[ "$SCORE" == "erro" ]]; then
-  fail "Erro ao enviar para a API:"
-  echo "$RESPONSE" | jq .
+if [[ "$SCORE" == "erro" || "$HTTP_CODE" != "200" && "$HTTP_CODE" != "201" ]]; then
+  fail "Erro ao enviar (HTTP ${HTTP_CODE}):"
+  echo "$RESPONSE" | jq . 2>/dev/null || echo "$RESPONSE"
   exit 1
 fi
 
