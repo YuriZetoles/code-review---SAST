@@ -16,6 +16,7 @@ spec:
       initContainers:
         - name: migrate
           image: yurizetoles/sast-arena-api:latest
+          imagePullPolicy: Always
           command: ["node", "dist/db/migrate.js"]
           env:
             - name: DATABASE_URL
@@ -26,6 +27,7 @@ spec:
       containers:
         - name: api
           image: yurizetoles/sast-arena-api:latest
+          imagePullPolicy: Always
           env:
             - name: DATABASE_URL
               valueFrom:

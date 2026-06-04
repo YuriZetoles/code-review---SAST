@@ -16,6 +16,7 @@ spec:
       containers:
         - name: web
           image: yurizetoles/sast-arena-web:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
 ---
