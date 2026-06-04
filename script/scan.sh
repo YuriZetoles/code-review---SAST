@@ -151,7 +151,13 @@ PROJECT_VERSION="local"
 REPO_URL=""
 if git -C "$PROJECT_PATH" rev-parse --short HEAD &>/dev/null; then
   PROJECT_VERSION=$(git -C "$PROJECT_PATH" rev-parse --short HEAD)
-  REPO_URL=$(git -C "$PROJECT_PATH" remote get-url origin 2>/dev/null || echo "")
+  _raw_url=$(git -C "$PROJECT_PATH" remote get-url origin 2>/dev/null || echo "")
+  # Converter SSH (git@host:user/repo.git) → HTTPS
+  if [[ "$_raw_url" =~ ^git@ ]]; then
+    REPO_URL=$(echo "$_raw_url" | sed 's|^git@\([^:]*\):\(.*\)$|https://\1/\2|')
+  elif [[ "$_raw_url" =~ ^https?:// ]]; then
+    REPO_URL="$_raw_url"
+  fi
 fi
 
 # --- [1/4] SCA: Syft + Grype ---
