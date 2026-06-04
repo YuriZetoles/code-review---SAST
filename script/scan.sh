@@ -277,16 +277,36 @@ jq -n \
     trivy: $trivy[0]
   }' > "$PAYLOAD_FILE"
 
-HTTP_CODE=$(curl -s -o /tmp/sast_response.json -w "%{http_code}" --max-time 60 -X POST "${API_URL}/api/submissions" \
-  -H "Content-Type: application/json" \
-  -d @"$PAYLOAD_FILE") || HTTP_CODE="000"
+_send_payload() {
+  local endpoint="${API_URL}/api/submissions${1:-}"
+  HTTP_CODE=$(curl -s -o /tmp/sast_response.json -w "%{http_code}" --max-time 60 -X POST "$endpoint" \
+    -H "Content-Type: application/json" \
+    -d @"$PAYLOAD_FILE") || HTTP_CODE="000"
+  RESPONSE=$(cat /tmp/sast_response.json 2>/dev/null || echo '{}')
+  rm -f /tmp/sast_response.json
+}
 
-RESPONSE=$(cat /tmp/sast_response.json 2>/dev/null || echo '{}')
-rm -f /tmp/sast_response.json
+_send_payload
 
 if [[ "$HTTP_CODE" == "000" ]]; then
   fail "API inacessivel ou timeout (${API_URL})."
   exit 1
+fi
+
+# --- 409: projeto registrado por outro grupo — confirmar sobrescrita ---
+if [[ "$HTTP_CODE" == "409" ]]; then
+  _detail=$(echo "$RESPONSE" | jq -r '.detail // .error')
+  warn "$_detail"
+  echo ""
+  read -rp $'\e[1mSobrescrever submissao anterior? [s/N]:\e[0m ' _confirm
+  echo ""
+  if [[ "$_confirm" == "s" || "$_confirm" == "S" ]]; then
+    info "Reenviando com force=true..."
+    _send_payload "?force=true"
+  else
+    fail "Envio cancelado."
+    exit 1
+  fi
 fi
 
 # --- Exibir resultado ---

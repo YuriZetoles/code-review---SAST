@@ -34,19 +34,33 @@ export async function submissionsRoutes(app: FastifyInstance) {
 
     const payload = parsed.data
     const repoUrl = payload.repo_url ?? null
+    const force = (req.query as Record<string, string>).force === 'true'
 
-    // Bloqueia se repo_url já registrado por outro grupo
-    if (repoUrl) {
-      const [existing] = await db
+    // Bloqueia se repo_url já registrado por outro grupo (a menos que force=true)
+    if (repoUrl && !force) {
+      const [conflict] = await db
         .select({ id: submissions.id, groupName: submissions.groupName })
         .from(submissions)
         .where(and(eq(submissions.repoUrl, repoUrl), ne(submissions.groupName, payload.group_name)))
 
-      if (existing) {
+      if (conflict) {
         return reply.status(409).send({
           error: 'Projeto já registrado',
-          detail: `Este repositório já foi registrado pelo grupo "${existing.groupName}".`,
+          detail: `Este repositório já foi registrado pelo grupo "${conflict.groupName}".`,
         })
+      }
+    }
+
+    // Com force=true: remove submissão anterior do outro grupo para este repo_url
+    if (repoUrl && force) {
+      const [conflict] = await db
+        .select({ id: submissions.id })
+        .from(submissions)
+        .where(and(eq(submissions.repoUrl, repoUrl), ne(submissions.groupName, payload.group_name)))
+
+      if (conflict) {
+        await db.delete(vulnerabilities).where(eq(vulnerabilities.submissionId, conflict.id))
+        await db.delete(submissions).where(eq(submissions.id, conflict.id))
       }
     }
 
