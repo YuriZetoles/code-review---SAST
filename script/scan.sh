@@ -152,11 +152,13 @@ REPO_URL=""
 if git -C "$PROJECT_PATH" rev-parse --short HEAD &>/dev/null; then
   PROJECT_VERSION=$(git -C "$PROJECT_PATH" rev-parse --short HEAD)
   _raw_url=$(git -C "$PROJECT_PATH" remote get-url origin 2>/dev/null || echo "")
-  # Converter SSH (git@host:user/repo.git) → HTTPS
+  # Normalizar para HTTPS — qualquer outro formato vira null
   if [[ "$_raw_url" =~ ^git@ ]]; then
-    REPO_URL=$(echo "$_raw_url" | sed 's|^git@\([^:]*\):\(.*\)$|https://\1/\2|')
+    REPO_URL=$(echo "$_raw_url" | sed 's|^git@\([^:]*\):\(.*\)$|https://\1/\2|' | sed 's|\.git$||')
+  elif [[ "$_raw_url" =~ ^ssh:// ]]; then
+    REPO_URL=$(echo "$_raw_url" | sed 's|^ssh://git@\(.*\)$|https://\1|' | sed 's|\.git$||')
   elif [[ "$_raw_url" =~ ^https?:// ]]; then
-    REPO_URL="$_raw_url"
+    REPO_URL=$(echo "$_raw_url" | sed 's|\.git$||')
   fi
 fi
 
