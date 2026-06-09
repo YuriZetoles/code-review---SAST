@@ -138,7 +138,7 @@ export function DetailPage() {
           </div>
         </div>
 
-        <ScoreBar score={submission.score} />
+        <ScoreBar score={submission.score} showLabel={false} />
 
 {/* Tool versions */}
         {(submission.grype_version || submission.semgrep_version || submission.gitleaks_version || submission.trivy_version) && (

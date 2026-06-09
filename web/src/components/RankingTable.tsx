@@ -70,11 +70,11 @@ export function RankingTable({ entries }: RankingTableProps) {
             <th className="px-4 py-3 text-left text-xs font-code text-zinc-500 uppercase tracking-widest">Projeto</th>
             <th className="px-4 py-3 text-left text-xs font-code text-zinc-500 uppercase tracking-widest hidden md:table-cell">Versão</th>
             <th className="px-4 py-3 text-left text-xs font-code text-zinc-500 uppercase tracking-widest w-52">Score</th>
-            <th className="px-4 py-3 text-center text-xs font-code text-zinc-500 uppercase tracking-widest hidden lg:table-cell">CVEs</th>
-            <th className="px-4 py-3 text-center text-xs font-code text-zinc-500 uppercase tracking-widest hidden lg:table-cell">SAST</th>
-            <th className="px-4 py-3 text-center text-xs font-code text-zinc-500 uppercase tracking-widest hidden lg:table-cell">Secrets</th>
-            <th className="px-4 py-3 text-center text-xs font-code text-zinc-500 uppercase tracking-widest hidden lg:table-cell">Misconfigs</th>
-            <th className="px-4 py-3 text-right text-xs font-code text-zinc-500 uppercase tracking-widest hidden sm:table-cell">Enviado</th>
+            <th className="px-2 py-3 text-center text-xs font-code text-zinc-500 uppercase tracking-widest hidden lg:table-cell w-16">CVEs</th>
+            <th className="px-2 py-3 text-center text-xs font-code text-zinc-500 uppercase tracking-widest hidden lg:table-cell w-16">SAST</th>
+            <th className="px-2 py-3 text-center text-xs font-code text-zinc-500 uppercase tracking-widest hidden lg:table-cell w-16">Secrets</th>
+            <th className="px-2 py-3 text-center text-xs font-code text-zinc-500 uppercase tracking-widest hidden lg:table-cell w-20">Misconfigs</th>
+            <th className="px-4 py-3 text-right text-xs font-code text-zinc-500 uppercase tracking-widest hidden sm:table-cell w-28">Enviado</th>
           </tr>
         </thead>
         <tbody>
@@ -108,20 +108,22 @@ export function RankingTable({ entries }: RankingTableProps) {
                   <span className={`text-base font-bold font-code tabular-nums w-8 ${scoreTextColor(entry.score)}`}>
                     {entry.score}
                   </span>
-                  <ScoreBar score={entry.score} showLabel={false} />
+                  <div className="flex-1">
+                    <ScoreBar score={entry.score} showLabel={false} />
+                  </div>
                 </div>
               </td>
-              <td className="px-4 py-4 text-center hidden lg:table-cell">
-                <span className="text-xs font-code text-cyan-400/80">{entry.cves ?? 0}</span>
+              <td className="px-2 py-4 text-center hidden lg:table-cell">
+                <span className="text-xs font-code text-zinc-400">{entry.cves ?? 0}</span>
               </td>
-              <td className="px-4 py-4 text-center hidden lg:table-cell">
-                <span className="text-xs font-code text-violet-400/80">{entry.sast ?? 0}</span>
+              <td className="px-2 py-4 text-center hidden lg:table-cell">
+                <span className="text-xs font-code text-zinc-400">{entry.sast ?? 0}</span>
               </td>
-              <td className="px-4 py-4 text-center hidden lg:table-cell">
-                <span className="text-xs font-code text-red-400/80">{entry.secrets ?? 0}</span>
+              <td className="px-2 py-4 text-center hidden lg:table-cell">
+                <span className="text-xs font-code text-zinc-400">{entry.secrets ?? 0}</span>
               </td>
-              <td className="px-4 py-4 text-center hidden lg:table-cell">
-                <span className="text-xs font-code text-pink-400/80">{entry.misconfigs ?? 0}</span>
+              <td className="px-2 py-4 text-center hidden lg:table-cell">
+                <span className="text-xs font-code text-zinc-400">{entry.misconfigs ?? 0}</span>
               </td>
               <td className="px-4 py-4 text-right hidden sm:table-cell">
                 <span className="text-xs text-zinc-400 font-code">
