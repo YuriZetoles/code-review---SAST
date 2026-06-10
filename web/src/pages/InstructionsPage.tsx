@@ -25,8 +25,8 @@ sudo usermod -aG docker $USER
     number: 2,
     title: 'Execute o scanner',
     description: 'Entre na pasta do seu projeto e rode o comando abaixo. O scanner pergunta o nome do grupo e do projeto interativamente.',
-    code: `cd /caminho/do/seu/projeto\ndocker run --rm -it -v "$(pwd):/scan" yurizetoles/sast-arena-scanner`,
-    note: 'A primeira execução baixa a imagem (~800 MB). As próximas são instantâneas. O -it é necessário para o prompt interativo.',
+    code: `cd /caminho/do/seu/projeto\ndocker pull yurizetoles/sast-arena-scanner && docker run --rm -it -v "$(pwd):/scan" yurizetoles/sast-arena-scanner`,
+    note: 'O pull garante que você sempre usa a versão mais recente do scanner. O -it é necessário para o prompt interativo.',
   },
   {
     number: 3,
