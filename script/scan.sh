@@ -100,7 +100,7 @@ echo ""
 
 # --- Validações ---
 if [[ -z "$GROUP_NAME" || -z "$PROJECT_NAME" ]]; then
-  fail "grupo e nome do projeto sao obrigatorios."
+  fail "Grupo e nome do projeto sao obrigatorios."
   exit 1
 fi
 
@@ -110,7 +110,7 @@ if [[ -z "$API_URL" ]]; then
 fi
 
 if [[ ! -d "$PROJECT_PATH" ]]; then
-  fail "diretorio '$PROJECT_PATH' nao existe."
+  fail "Diretorio '$PROJECT_PATH' nao existe."
   exit 1
 fi
 
@@ -129,13 +129,13 @@ for cmd in syft grype semgrep gitleaks trivy jq curl; do
   if command -v "$cmd" &>/dev/null; then
     ok "$cmd"
   else
-    fail "$cmd nao encontrado"
+    fail "$cmd nao encontrado."
     MISSING=1
   fi
 done
 if [[ "$MISSING" -eq 1 ]]; then
   echo ""
-  fail "Instale as dependencias acima."
+  fail "Instale as dependencias listadas acima."
   exit 1
 fi
 
