@@ -11,10 +11,16 @@ const ScanPayloadSchema = z.object({
   group_name: z.string().min(1),
   project_name: z.string().min(1),
   project_version: z.string().min(1),
-  repo_url: z.preprocess(
-    (v) => (typeof v === 'string' ? v.trim() || null : v),
-    z.string().url().optional().nullable(),
-  ),
+  repo_url: z.preprocess((v) => {
+    if (v == null || v === 'null' || v === 'undefined') return null
+    if (typeof v !== 'string') return null
+    const s = v.trim()
+    if (!s) return null
+    if (/^git@/.test(s)) return s.replace(/^git@([^:]+):(.+?)(?:\.git)?$/, 'https://$1/$2')
+    if (/^ssh:\/\/git@/.test(s)) return s.replace(/^ssh:\/\/git@(.+?)(?:\.git)?$/, 'https://$1')
+    if (/^https?:\/\//.test(s)) return s.replace(/\.git$/, '')
+    return null
+  }, z.string().url().optional().nullable()),
   tool_versions: z.object({
     syft: z.string(),
     grype: z.string(),
