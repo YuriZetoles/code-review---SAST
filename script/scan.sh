@@ -118,9 +118,9 @@ fi
 git config --global --add safe.directory '*' 2>/dev/null || true
 
 divider
-info "Grupo: ${BOLD}${GROUP_NAME}${RESET}"
-info "Projeto: ${BOLD}${PROJECT_NAME}${RESET}"
-info "Diretorio: ${PROJECT_PATH}"
+info "Grupo:${BOLD}${GROUP_NAME}${RESET}"
+info "Projeto:${BOLD}${PROJECT_NAME}${RESET}"
+info "Diretorio:${PROJECT_PATH}"
 
 # --- Verificar dependencias ---
 section "Verificando dependencias"
@@ -333,14 +333,14 @@ echo ""
 divider
 echo -e "  ${BOLD}Resultado -- ${GROUP_NAME} / ${PROJECT_NAME}${RESET}"
 divider
-echo -e "  Score          : ${BOLD}${SCORE}/100${RESET}"
-echo -e "  CVEs Critical  : $(echo "$BREAKDOWN" | jq -r '.critical')"
-echo -e "  CVEs High      : $(echo "$BREAKDOWN" | jq -r '.high')"
-echo -e "  CVEs Medium    : $(echo "$BREAKDOWN" | jq -r '.medium')"
-echo -e "  CVEs Low       : $(echo "$BREAKDOWN" | jq -r '.low')"
-echo -e "  Secrets        : $(echo "$BREAKDOWN" | jq -r '.secrets')"
-echo -e "  Misconfigs     : $(echo "$BREAKDOWN" | jq -r '.misconfigs // 0')"
-echo -e "  Tempo total    : ${ELAPSED}s"
+echo -e "  Score         :${BOLD}${SCORE}/100${RESET}"
+echo -e "  CVEs Critical :$(echo "$BREAKDOWN" | jq -r '.critical')"
+echo -e "  CVEs High     :$(echo "$BREAKDOWN" | jq -r '.high')"
+echo -e "  CVEs Medium   :$(echo "$BREAKDOWN" | jq -r '.medium')"
+echo -e "  CVEs Low      :$(echo "$BREAKDOWN" | jq -r '.low')"
+echo -e "  Secrets       :$(echo "$BREAKDOWN" | jq -r '.secrets')"
+echo -e "  Misconfigs    :$(echo "$BREAKDOWN" | jq -r '.misconfigs // 0')"
+echo -e "  Tempo total   :${ELAPSED}s"
 divider
 ok "Enviado. Ranking: ${API_URL}"
 echo ""
