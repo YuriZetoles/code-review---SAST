@@ -83,10 +83,10 @@ echo ""
 
 # --- Prompt interativo se args não fornecidos ---
 if [[ -z "$GROUP_NAME" ]]; then
-  read -rp $'\e[1mGrupo   :\e[0m ' GROUP_NAME
+  read -rp $'\e[1mGrupo:\e[0m ' GROUP_NAME
 fi
 if [[ -z "$PROJECT_NAME" ]]; then
-  read -rp $'\e[1mProjeto :\e[0m ' PROJECT_NAME
+  read -rp $'\e[1mProjeto:\e[0m ' PROJECT_NAME
 fi
 echo ""
 
@@ -110,8 +110,8 @@ fi
 git config --global --add safe.directory '*' 2>/dev/null || true
 
 divider
-info "Grupo    : ${BOLD}${GROUP_NAME}${RESET}"
-info "Projeto  : ${BOLD}${PROJECT_NAME}${RESET}"
+info "Grupo: ${BOLD}${GROUP_NAME}${RESET}"
+info "Projeto: ${BOLD}${PROJECT_NAME}${RESET}"
 info "Diretorio: ${PROJECT_PATH}"
 
 # --- Verificar dependencias ---
@@ -233,7 +233,7 @@ ok "${TRIVY_COUNT} misconfigs encontradas"
 # --- Montar payload ---
 section "Enviando resultados"
 REPO_URL_ARG="null"
-if [[ -n "$REPO_URL" ]]; then
+if [[ "$REPO_URL" =~ ^https?:// ]]; then
   REPO_URL_ARG="\"$REPO_URL\""
 fi
 
