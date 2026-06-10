@@ -11,7 +11,10 @@ const ScanPayloadSchema = z.object({
   group_name: z.string().min(1),
   project_name: z.string().min(1),
   project_version: z.string().min(1),
-  repo_url: z.string().url().optional().nullable(),
+  repo_url: z.preprocess(
+    (v) => (typeof v === 'string' ? v.trim() || null : v),
+    z.string().url().optional().nullable(),
+  ),
   tool_versions: z.object({
     syft: z.string(),
     grype: z.string(),
