@@ -15,9 +15,9 @@ BOLD='\033[1m'
 RESET='\033[0m'
 
 # --- Helpers de output ---
-info()    { echo -e "  ${DIM}>${RESET} $*"; }
-ok()      { echo -e "  ${BOLD}+${RESET} $*"; }
-warn()    { echo -e "  ${BOLD}!${RESET} $*"; }
+info()    { echo -e "${DIM}>${RESET} $*"; }
+ok()      { echo -e "${BOLD}+${RESET} $*"; }
+warn()    { echo -e "${BOLD}!${RESET} $*"; }
 fail()    { echo -e "${BOLD}x${RESET} $*"; }
 section() { echo -e "\n${BOLD}:: $*${RESET}"; }
 divider() { echo -e "${DIM}────────────────────────────────────────${RESET}"; }
