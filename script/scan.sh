@@ -85,7 +85,7 @@ echo ""
 if [[ -z "$PROJECT_NAME" ]]; then
   _git_remote=$(git -C "$PROJECT_PATH" remote get-url origin 2>/dev/null || true)
   if [[ -n "$_git_remote" ]]; then
-    PROJECT_NAME=$(echo "$_git_remote" | sed 's|.*/||' | sed 's|\.git$||')
+    PROJECT_NAME=$(echo "$_git_remote" | tr -d '[:space:]' | sed 's|.*/||' | sed 's|\.git$||')
   fi
 fi
 
@@ -151,14 +151,14 @@ PROJECT_VERSION="local"
 REPO_URL=""
 if git -C "$PROJECT_PATH" rev-parse --short HEAD &>/dev/null; then
   PROJECT_VERSION=$(git -C "$PROJECT_PATH" rev-parse --short HEAD)
-  _raw_url=$(git -C "$PROJECT_PATH" remote get-url origin 2>/dev/null || echo "")
+  _raw_url=$(git -C "$PROJECT_PATH" remote get-url origin 2>/dev/null | tr -d '[:space:]' || echo "")
   # Normalizar para HTTPS — qualquer outro formato vira null
   if [[ "$_raw_url" =~ ^git@ ]]; then
-    REPO_URL=$(echo "$_raw_url" | sed 's|^git@\([^:]*\):\(.*\)$|https://\1/\2|' | sed 's|\.git$||')
+    REPO_URL=$(echo "$_raw_url" | sed 's|^git@\([^:]*\):\(.*\)$|https://\1/\2|' | sed 's|\.git$||' | tr -d '[:space:]')
   elif [[ "$_raw_url" =~ ^ssh:// ]]; then
-    REPO_URL=$(echo "$_raw_url" | sed 's|^ssh://git@\(.*\)$|https://\1|' | sed 's|\.git$||')
+    REPO_URL=$(echo "$_raw_url" | sed 's|^ssh://git@\(.*\)$|https://\1|' | sed 's|\.git$||' | tr -d '[:space:]')
   elif [[ "$_raw_url" =~ ^https?:// ]]; then
-    REPO_URL=$(echo "$_raw_url" | sed 's|\.git$||')
+    REPO_URL=$(echo "$_raw_url" | sed 's|\.git$||' | tr -d '[:space:]')
   fi
 fi
 
