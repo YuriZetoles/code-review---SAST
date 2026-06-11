@@ -1,341 +1,436 @@
-import { useState } from 'react'
-
-function CodeBlock({ code }: { code: string }) {
-  const [copied, setCopied] = useState(false)
-
-  function handleCopy() {
-    navigator.clipboard.writeText(code).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
-  }
-
-  return (
-    <div className="relative mt-3 group/code">
-      <pre className="bg-[#09090b] border border-white/10 rounded-xl p-4 overflow-x-auto text-xs font-code text-zinc-300 leading-relaxed pr-12">
-        {code}
-      </pre>
-      <button
-        onClick={handleCopy}
-        className="absolute top-2.5 right-2.5 w-7 h-7 rounded-md border border-zinc-700/60 bg-zinc-800/80 flex items-center justify-center text-zinc-500 hover:text-white hover:border-white/25 transition-all duration-150 opacity-0 group-hover/code:opacity-100 focus:opacity-100"
-        aria-label="Copiar código"
-        title={copied ? 'Copiado!' : 'Copiar'}
-      >
-        {copied ? (
-          <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
-        ) : (
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-          </svg>
-        )}
-      </button>
-    </div>
-  )
+interface Section {
+  id: string
+  title: string
 }
 
-interface Tool {
-  name: string
-  role: string
-  description: string
-  color: string
-}
+const NAV: Section[] = [
+  { id: 'por-que', title: 'Por que segurança importa' },
+  { id: 'sast', title: 'SAST' },
+  { id: 'dast', title: 'DAST' },
+  { id: 'sca', title: 'SCA' },
+  { id: 'cve-cvss', title: 'CVE e CVSS' },
+  { id: 'secrets', title: 'Secrets' },
+  { id: 'iac', title: 'IaC Security' },
+  { id: 'owasp', title: 'OWASP Top 10' },
+  { id: 'ferramentas', title: 'Ferramentas' },
+  { id: 'nossa-abordagem', title: 'Nossa abordagem' },
+]
 
-const TOOLS: Tool[] = [
+const OWASP = [
+  { n: 'A01', label: 'Broken Access Control', desc: 'Usuário acessa recursos além do seu nível de permissão.' },
+  { n: 'A02', label: 'Cryptographic Failures', desc: 'Dados sensíveis sem criptografia ou com algoritmos fracos (MD5, SHA1).' },
+  { n: 'A03', label: 'Injection', desc: 'SQL, OS Command, LDAP injection via entrada não sanitizada.' },
+  { n: 'A04', label: 'Insecure Design', desc: 'Falhas arquiteturais que não podem ser corrigidas só com código.' },
+  { n: 'A05', label: 'Security Misconfiguration', desc: 'Configurações padrão inseguras, permissões excessivas, portas desnecessárias.' },
+  { n: 'A06', label: 'Vulnerable Components', desc: 'Dependências com CVEs conhecidos e não atualizadas.' },
+  { n: 'A07', label: 'Auth Failures', desc: 'Senhas fracas, sessões mal gerenciadas, ausência de MFA.' },
+  { n: 'A08', label: 'Integrity Failures', desc: 'Atualizações e pipelines sem verificação de integridade.' },
+  { n: 'A09', label: 'Logging Failures', desc: 'Ausência de logs e alertas adequados para detecção de ataques.' },
+  { n: 'A10', label: 'SSRF', desc: 'Servidor faz requisições para destinos controlados pelo atacante.' },
+]
+
+const CVSS = [
+  { range: '9.0 – 10.0', label: 'Critical', color: 'text-red-400 border-red-500/30 bg-red-500/10' },
+  { range: '7.0 – 8.9', label: 'High', color: 'text-orange-400 border-orange-500/30 bg-orange-500/10' },
+  { range: '4.0 – 6.9', label: 'Medium', color: 'text-yellow-400 border-yellow-500/30 bg-yellow-500/10' },
+  { range: '0.1 – 3.9', label: 'Low', color: 'text-blue-400 border-blue-500/30 bg-blue-500/10' },
+  { range: '0.0', label: 'None', color: 'text-zinc-400 border-zinc-600/30 bg-zinc-800/60' },
+]
+
+const TOOLS = [
   {
     name: 'Syft',
-    role: 'Geração de SBOM',
-    description: 'Gera o Software Bill of Materials a partir do sistema de arquivos ou imagem de container, catalogando todos os pacotes e suas versões.',
-    color: 'text-zinc-300 border-zinc-700/60 bg-zinc-800/60',
+    vendor: 'Anchore',
+    category: 'SBOM',
+    desc: 'Gera o inventário completo de pacotes e dependências (Software Bill of Materials) a partir do sistema de arquivos ou imagem de container.',
   },
   {
     name: 'Grype',
-    role: 'SCA / CVEs',
-    description: 'Consome o SBOM gerado pelo Syft e cruza os pacotes com bases de dados de vulnerabilidades (NVD, GitHub Advisory, OSV) para identificar CVEs.',
-    color: 'text-zinc-300 border-zinc-700/60 bg-zinc-800/60',
+    vendor: 'Anchore',
+    category: 'SCA / CVEs',
+    desc: 'Consome o SBOM do Syft e cruza os pacotes com bases NVD, GitHub Advisory e OSV para identificar CVEs por severidade.',
   },
   {
     name: 'Semgrep',
-    role: 'SAST',
-    description: 'Analisa o código-fonte com regras semânticas baseadas em padrões AST. Cobre OWASP Top 10, CWE Top 25, boas práticas e regras customizáveis.',
-    color: 'text-zinc-300 border-zinc-700/60 bg-zinc-800/60',
+    vendor: 'Semgrep Inc.',
+    category: 'SAST',
+    desc: 'Analisa o código-fonte com regras semânticas baseadas em padrões AST. Cobre OWASP Top 10, CWE Top 25, secrets e boas práticas.',
   },
   {
     name: 'Gitleaks',
-    role: 'Detecção de segredos',
-    description: 'Varre o código e o histórico Git em busca de credenciais, tokens de API, chaves privadas e outros segredos expostos inadvertidamente.',
-    color: 'text-zinc-300 border-zinc-700/60 bg-zinc-800/60',
+    vendor: 'Gitleaks',
+    category: 'Secrets',
+    desc: 'Varre código e histórico completo de commits em busca de tokens, chaves privadas, senhas e credenciais expostas inadvertidamente.',
   },
   {
-    name: 'jq',
-    role: 'Processamento JSON',
-    description: 'Processa e transforma as saídas JSON das ferramentas para normalização antes do envio à API.',
-    color: 'text-zinc-300 border-zinc-700/60 bg-zinc-800/60',
-  },
-  {
-    name: 'curl',
-    role: 'Envio HTTP',
-    description: 'Realiza o POST dos resultados normalizados para a API central da plataforma.',
-    color: 'text-zinc-300 border-zinc-700/60 bg-zinc-800/60',
+    name: 'Trivy',
+    vendor: 'Aqua Security',
+    category: 'IaC / Misconfig',
+    desc: 'Detecta misconfigurações em Dockerfiles, manifests Kubernetes e Terraform — containers rodando como root, portas desnecessárias, secrets em variáveis de ambiente.',
   },
 ]
+
+function Tag({ label }: { label: string }) {
+  return (
+    <span className="inline-block text-xs font-code bg-zinc-800 border border-white/10 text-zinc-400 px-2 py-0.5 rounded-md">
+      {label}
+    </span>
+  )
+}
 
 export function AboutPage() {
   return (
     <div>
-      {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold font-code text-zinc-100 mb-2">
           Sobre o{' '}
           <span className="text-white">SAST Arena</span>
         </h1>
         <p className="text-zinc-400 text-sm leading-relaxed">
-          Documentação introdutória da oficina{' '}
-          <span className="font-code text-zinc-300">Code Review &amp; SAST — Análise Estática de Segurança</span>.
+          Fundamentos de segurança de software — do porquê ao como — contextualizando a plataforma{' '}
+          <span className="font-code text-zinc-300">Code Review &amp; SAST</span>.
         </p>
       </div>
 
-      {/* Visão Geral */}
-      <section aria-labelledby="visao-geral" className="bg-zinc-900/60 border border-white/10 rounded-2xl p-6 mb-6">
-        <h2 id="visao-geral" className="text-lg font-bold font-code text-zinc-100 mb-3">Visão geral</h2>
+      {/* Índice */}
+      <nav className="bg-zinc-900/60 border border-white/10 rounded-2xl p-5 mb-6">
+        <p className="text-xs font-code text-zinc-500 uppercase tracking-widest mb-3">Conteúdo</p>
+        <ol className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5">
+          {NAV.map((s, i) => (
+            <li key={s.id}>
+              <a
+                href={`#${s.id}`}
+                className="text-sm font-code text-zinc-400 hover:text-zinc-100 transition-colors flex items-center gap-2"
+              >
+                <span className="text-zinc-600 tabular-nums">{String(i + 1).padStart(2, '0')}</span>
+                {s.title}
+              </a>
+            </li>
+          ))}
+        </ol>
+      </nav>
+
+      {/* 1. Por que segurança importa */}
+      <section id="por-que" className="bg-zinc-900/60 border border-white/10 rounded-2xl p-6 mb-6">
+        <h2 className="text-lg font-bold font-code text-zinc-100 mb-3">Por que segurança importa</h2>
         <div className="space-y-3 text-sm text-zinc-400 leading-relaxed">
           <p>
-            O SAST Arena é uma plataforma de análise estática de segurança projetada para
-            oficinas práticas. Cada grupo de participantes executa um script local —{' '}
-            <code className="font-code text-zinc-300 bg-zinc-800/70 px-1.5 py-0.5 rounded text-xs">scan.sh</code>{' '}
-            — que orquestra quatro ferramentas open source em sequência: SCA via Syft e Grype,
-            análise estática via Semgrep e detecção de segredos via Gitleaks.
+            Toda aplicação é um conjunto de decisões de código. Cada decisão errada pode se tornar
+            uma vulnerabilidade explorável. O custo de corrigir um problema cresce
+            exponencialmente conforme avança no ciclo de desenvolvimento:
           </p>
-          <p>
-            Os resultados são normalizados, pontuados por uma fórmula baseada em severidade e
-            enviados automaticamente à API central. Um ranking ao vivo exibe os scores de todos
-            os grupos em tempo real, estimulando a competição e a discussão sobre os achados.
-          </p>
-          <p>
-            O objetivo é tornar tangível o impacto de vulnerabilidades reais: cada grupo
-            analisa o próprio projeto, vê suas fragilidades no ranking e aprende a mitigá-las
-            durante a discussão coletiva.
-          </p>
-        </div>
-      </section>
-
-      {/* Conceitos */}
-      <section aria-labelledby="conceitos" className="bg-zinc-900/60 border border-white/10 rounded-2xl p-6 mb-6">
-        <h2 id="conceitos" className="text-lg font-bold font-code text-zinc-100 mb-4">Conceitos</h2>
-        <div className="space-y-5 text-sm text-zinc-400 leading-relaxed">
-          <div>
-            <h3 className="font-semibold font-code text-zinc-200 mb-1">Code Review</h3>
-            <p>
-              Revisão sistemática do código-fonte com o objetivo de identificar defeitos,
-              violações de estilo e problemas de segurança antes da integração. Pode ser
-              conduzida manualmente por pares ou automatizada por ferramentas integradas ao
-              pipeline de CI/CD. Quando automatizada, é executada a cada pull request, impedindo
-              que vulnerabilidades conhecidas avancem para o ambiente de produção (Ribeiro et al., 2024).
-            </p>
-          </div>
-          <div>
-            <h3 className="font-semibold font-code text-zinc-200 mb-1">SAST — Static Application Security Testing</h3>
-            <p>
-              Analisa o código-fonte, bytecode ou binários sem executar a aplicação. Identifica
-              padrões inseguros como injeção de SQL, XSS e uso de algoritmos criptográficos
-              fracos diretamente na estrutura sintática do código (Esquivel et al., 2024).
-            </p>
-          </div>
-          <div>
-            <h3 className="font-semibold font-code text-zinc-200 mb-1">SCA — Software Composition Analysis</h3>
-            <p>
-              Inventaria as dependências de terceiros de um projeto e cruza esse inventário com
-              bases de dados de vulnerabilidades conhecidas, como o NVD (National Vulnerability
-              Database). Complementa o SAST ao cobrir riscos introduzidos por bibliotecas
-              externas, não pelo código próprio.
-            </p>
-          </div>
-          <div>
-            <h3 className="font-semibold font-code text-zinc-200 mb-1">Detecção de segredos</h3>
-            <p>
-              Varre o código e o histórico de commits em busca de credenciais hardcoded — tokens
-              de API, chaves privadas, senhas e strings de conexão. Segredos expostos em
-              repositórios representam um vetor de ataque direto, independentemente da
-              severidade das demais vulnerabilidades (Taffarel; Freitas; Pereira Junior, 2024).
-            </p>
-          </div>
-          <div>
-            <h3 className="font-semibold font-code text-zinc-200 mb-1">CVE, NVD e SBOM</h3>
-            <p>
-              CVE (<em>Common Vulnerabilities and Exposures</em>) é o sistema de identificação
-              padronizado de vulnerabilidades públicas. O NVD é a base mantida pelo NIST que
-              enriquece os CVEs com pontuação CVSS, vetor de ataque e referências. O SBOM
-              (<em>Software Bill of Materials</em>) é um inventário formal de todos os
-              componentes de software de um sistema — é a base sobre a qual o SCA opera:
-              sem um SBOM preciso, não é possível cruzar as dependências com o NVD de forma
-              confiável (Ponce et al., 2024).
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Ferramentas */}
-      <section aria-labelledby="ferramentas" className="bg-zinc-900/60 border border-white/10 rounded-2xl p-6 mb-6">
-        <h2 id="ferramentas" className="text-lg font-bold font-code text-zinc-100 mb-1">Ferramentas</h2>
-        <p className="text-sm text-zinc-500 mb-4">Todas as ferramentas utilizadas são open source.</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {TOOLS.map(tool => (
-            <div key={tool.name} className={`rounded-xl p-4 border ${tool.color}`}>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="font-code font-semibold text-sm">{tool.name}</span>
-                <span className="text-xs opacity-70 font-code">{tool.role}</span>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 my-4">
+            {[
+              { fase: 'Código', custo: 'Baixo', detalhe: 'Minutos. Correção local antes do commit.' },
+              { fase: 'CI / Staging', custo: 'Médio', detalhe: 'Horas. Retrabalho, novo ciclo de testes.' },
+              { fase: 'Produção', custo: 'Alto', detalhe: 'Incidentes, vazamentos, multas, reputação.' },
+            ].map(f => (
+              <div key={f.fase} className="rounded-xl border border-white/10 bg-zinc-800/40 p-4">
+                <div className="font-code text-zinc-200 font-semibold text-sm mb-1">{f.fase}</div>
+                <div className="text-xs text-zinc-500">{f.detalhe}</div>
               </div>
-              <p className="text-sm text-zinc-400 leading-relaxed">{tool.description}</p>
+            ))}
+          </div>
+          <p>
+            O modelo <span className="text-zinc-200 font-semibold">Shift Left</span> propõe mover
+            a análise de segurança para o início do ciclo — integrada ao editor, ao pull request e
+            ao pipeline de CI. Quanto mais cedo a vulnerabilidade é detectada, menor o custo e o
+            impacto de corrigi-la.
+          </p>
+          <p>
+            O conceito de <span className="text-zinc-200 font-semibold">DevSecOps</span> formaliza
+            essa ideia: segurança deixa de ser uma etapa isolada no final do projeto e passa a ser
+            responsabilidade contínua de todo o time de desenvolvimento.
+          </p>
+        </div>
+      </section>
+
+      {/* 2. SAST */}
+      <section id="sast" className="bg-zinc-900/60 border border-white/10 rounded-2xl p-6 mb-6">
+        <h2 className="text-lg font-bold font-code text-zinc-100 mb-1">SAST — Static Application Security Testing</h2>
+        <p className="text-sm text-zinc-500 mb-4">Análise do código sem executar a aplicação</p>
+        <div className="space-y-4 text-sm text-zinc-400 leading-relaxed">
+          <p>
+            O SAST analisa o código-fonte, bytecode ou binário <em>sem executar a aplicação</em>.
+            O analisador lê o código como texto estruturado e procura padrões conhecidos de
+            vulnerabilidade — injeção, criptografia fraca, configurações inseguras.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <p className="font-code text-zinc-300 font-semibold mb-2 text-xs uppercase tracking-wide">O que encontra</p>
+              <ul className="space-y-1 text-zinc-400">
+                {[
+                  'SQL Injection, Command Injection, Path Traversal',
+                  'XSS — Cross-Site Scripting',
+                  'Secrets e credenciais hardcoded',
+                  'Algoritmos criptográficos fracos (MD5, SHA1)',
+                  'Desserialização insegura',
+                  'Misconfigurações em Dockerfile, K8s, Terraform',
+                ].map(i => <li key={i} className="flex items-start gap-2"><span className="text-zinc-600 mt-0.5">+</span>{i}</li>)}
+              </ul>
+            </div>
+            <div>
+              <p className="font-code text-zinc-300 font-semibold mb-2 text-xs uppercase tracking-wide">Vantagens</p>
+              <ul className="space-y-1 text-zinc-400">
+                {[
+                  'Não precisa de ambiente rodando',
+                  'Executa a cada commit no CI/CD',
+                  'Cobre 100% do código analisado',
+                  'Determinístico — mesmos resultados',
+                ].map(i => <li key={i} className="flex items-start gap-2"><span className="text-zinc-600 mt-0.5">+</span>{i}</li>)}
+              </ul>
+              <p className="font-code text-zinc-300 font-semibold mb-2 mt-4 text-xs uppercase tracking-wide">Limitações</p>
+              <ul className="space-y-1 text-zinc-400">
+                {[
+                  'Falsos positivos — triagem humana necessária',
+                  'Não detecta falhas de lógica de negócio',
+                  'Não vê comportamento em runtime',
+                ].map(i => <li key={i} className="flex items-start gap-2"><span className="text-zinc-600 mt-0.5">x</span>{i}</li>)}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. DAST */}
+      <section id="dast" className="bg-zinc-900/60 border border-white/10 rounded-2xl p-6 mb-6">
+        <h2 className="text-lg font-bold font-code text-zinc-100 mb-1">DAST — Dynamic Application Security Testing</h2>
+        <p className="text-sm text-zinc-500 mb-4">Teste da aplicação em execução, simulando um atacante</p>
+        <p className="text-sm text-zinc-400 leading-relaxed mb-4">
+          O DAST testa a aplicação <em>rodando</em> — envia requisições HTTP, payloads maliciosos
+          e observa as respostas. Não precisa de acesso ao código-fonte, simula um atacante externo.
+        </p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm font-code">
+            <thead>
+              <tr className="text-xs text-zinc-500 uppercase tracking-wide border-b border-white/10">
+                <th className="text-left py-2 pr-4">Critério</th>
+                <th className="text-left py-2 pr-4">SAST</th>
+                <th className="text-left py-2">DAST</th>
+              </tr>
+            </thead>
+            <tbody className="text-zinc-400">
+              {[
+                ['Aplicação precisa rodar?', 'Não', 'Sim'],
+                ['Acesso ao código-fonte?', 'Sim', 'Não'],
+                ['Falsos positivos', 'Alto', 'Baixo'],
+                ['Cobertura de código', 'Alta', 'Baixa'],
+                ['Velocidade', 'Rápido', 'Lento'],
+                ['Ideal para', 'CI/CD, PR review', 'Staging, homologação'],
+              ].map(([crit, sast, dast]) => (
+                <tr key={crit} className="border-b border-white/5">
+                  <td className="py-2 pr-4 text-zinc-300">{crit}</td>
+                  <td className="py-2 pr-4">{sast}</td>
+                  <td className="py-2">{dast}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="text-sm text-zinc-500 mt-4">
+          Equipes maduras usam ambos em momentos diferentes do pipeline — SAST no commit, DAST no staging.
+        </p>
+      </section>
+
+      {/* 4. SCA */}
+      <section id="sca" className="bg-zinc-900/60 border border-white/10 rounded-2xl p-6 mb-6">
+        <h2 className="text-lg font-bold font-code text-zinc-100 mb-1">SCA — Software Composition Analysis</h2>
+        <p className="text-sm text-zinc-500 mb-4">Vulnerabilidades em dependências de terceiros</p>
+        <div className="space-y-3 text-sm text-zinc-400 leading-relaxed">
+          <p>
+            Aplicações modernas são compostas em sua maioria por código de terceiros — bibliotecas
+            npm, pip, maven, cargo. Um projeto Node.js típico tem centenas de pacotes transitivos.
+            Basta um deles ter uma vulnerabilidade crítica para comprometer toda a aplicação.
+          </p>
+          <p>
+            O SCA inventaria essas dependências (via SBOM — <em>Software Bill of Materials</em>) e
+            cruza com bases de CVEs conhecidos como NVD, GitHub Advisory e OSV.
+          </p>
+          <div className="mt-4 rounded-xl border border-red-500/20 bg-red-500/5 p-4">
+            <p className="font-code text-red-400 font-semibold text-xs uppercase tracking-wide mb-2">Exemplo real — Log4Shell</p>
+            <p className="text-zinc-400 text-sm">
+              CVE-2021-44228 — biblioteca Java <span className="font-code text-zinc-300">log4j</span>{' '}
+              presente em milhares de sistemas corporativos. Permitia execução remota de código
+              via uma simples string de log. CVSS <span className="text-red-400 font-semibold">10.0 Critical</span>.
+              Descoberta em dezembro de 2021, ainda é explorada ativamente.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* 5. CVE e CVSS */}
+      <section id="cve-cvss" className="bg-zinc-900/60 border border-white/10 rounded-2xl p-6 mb-6">
+        <h2 className="text-lg font-bold font-code text-zinc-100 mb-3">CVE e CVSS</h2>
+        <div className="space-y-3 text-sm text-zinc-400 leading-relaxed mb-5">
+          <p>
+            <span className="text-zinc-200 font-semibold">CVE</span> (<em>Common Vulnerabilities and
+            Exposures</em>) é o identificador único para vulnerabilidades públicas conhecidas.
+            Formato: <span className="font-code text-zinc-300">CVE-AAAA-NNNNN</span>.
+          </p>
+          <p>
+            <span className="text-zinc-200 font-semibold">CVSS</span> (<em>Common Vulnerability
+            Scoring System</em>) é a métrica de severidade de 0 a 10. Considera: acesso remoto,
+            ausência de autenticação, impacto em confidencialidade, integridade e disponibilidade.
+          </p>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          {CVSS.map(c => (
+            <div key={c.label} className={`rounded-xl px-4 py-3 border ${c.color}`}>
+              <div className="text-xs font-code uppercase tracking-wide opacity-70 mb-1">{c.label}</div>
+              <div className="text-sm font-bold font-code">{c.range}</div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Como funciona o scan */}
-      <section aria-labelledby="como-funciona" className="bg-zinc-900/60 border border-white/10 rounded-2xl p-6 mb-6">
-        <h2 id="como-funciona" className="text-lg font-bold font-code text-zinc-100 mb-3">Como funciona o scan</h2>
-        <p className="text-sm text-zinc-400 leading-relaxed mb-2">
-          O grupo executa o scanner a partir do diretório raiz do projeto a ser analisado. O CLI solicita as informações interativamente:
-        </p>
-        <CodeBlock code={`cd /caminho/do/seu/projeto
-
-docker run --rm -it \\
-  -v "$(pwd):/scan" \\
-  yurizetoles/sast-arena-scanner`} />
-        <p className="text-sm text-zinc-400 leading-relaxed mt-4 mb-3">
-          Internamente, o script executa a seguinte sequência:
-        </p>
-        <ol className="space-y-2 text-sm text-zinc-400">
-          {[
-            ['Verificação de dependências', 'Confirma que Docker, jq e curl estão disponíveis no ambiente.'],
-            ['Geração de SBOM com Syft', 'Cataloga todos os pacotes e dependências do projeto em formato SPDX/CycloneDX.'],
-            ['Escaneamento de CVEs com Grype', 'Cruza o SBOM gerado com bases NVD, GitHub Advisory e OSV.'],
-            ['Análise estática com Semgrep', 'Aplica regras OWASP Top 10, CWE Top 25 e detecção de secrets no código-fonte.'],
-            ['Detecção de segredos com Gitleaks', 'Varre código e histórico Git em busca de credenciais expostas.'],
-            ['Envio via POST /api/submissions', 'Os resultados normalizados são enviados à API central com curl.'],
-            ['Exibição do score', 'O terminal exibe o score calculado e o grupo aparece no ranking ao vivo.'],
-          ].map(([title, desc], i) => (
-            <li key={i} className="flex items-start gap-3">
-              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-white/10 border border-white/20 flex items-center justify-center font-code text-xs text-white mt-0.5">{i + 1}</span>
-              <span>
-                <span className="font-code text-zinc-300 font-semibold">{title}</span>
-                <span className="text-zinc-500"> — {desc}</span>
-              </span>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      {/* Pontuação */}
-      <section aria-labelledby="pontuacao" className="bg-zinc-900/60 border border-white/10 rounded-2xl p-6 mb-6">
-        <h2 id="pontuacao" className="text-lg font-bold font-code text-zinc-100 mb-3">Pontuação</h2>
-        <p className="text-sm text-zinc-400 leading-relaxed mb-3">
-          O score de cada grupo parte de 100 pontos e é decrementado conforme os achados
-          das ferramentas, ponderados pela severidade:
-        </p>
-        <CodeBlock code={`score = 100
-      - (critical × 20)   ← CVEs críticos
-      - (high     × 10)   ← CVEs altos / SAST high
-      - (medium   ×  5)   ← CVEs médios
-      - (low      ×  1)   ← CVEs baixos
-      - (secrets  × 15)   ← segredos expostos (Gitleaks)
-
-score = max(score, 0)      ← nunca negativo`} />
-        <div className="mt-4 space-y-2 text-sm text-zinc-400 leading-relaxed">
+      {/* 6. Secrets */}
+      <section id="secrets" className="bg-zinc-900/60 border border-white/10 rounded-2xl p-6 mb-6">
+        <h2 className="text-lg font-bold font-code text-zinc-100 mb-3">Secrets e credenciais expostas</h2>
+        <div className="space-y-3 text-sm text-zinc-400 leading-relaxed">
           <p>
-            Achados mais graves penalizam proporcionalmente mais: um único CVE crítico já remove
-            20% do score máximo. Segredos expostos têm penalidade de 15 pontos cada — valor
-            deliberadamente alto, pois credenciais vazadas representam risco imediato e
-            independente de outras vulnerabilidades.
+            Credenciais hardcoded — chaves de API, tokens de acesso, senhas, certificados privados
+            — commitadas em repositórios são uma das vulnerabilidades mais críticas e frequentes.
           </p>
-          <p>O grupo com maior score ao final da oficina vence.</p>
+          <p>
+            O problema vai além do código atual: o <span className="text-zinc-200 font-semibold">histórico
+            completo de commits</span> é preservado pelo git. Mesmo que um secret seja removido em
+            um commit posterior, ele continua acessível via <span className="font-code text-zinc-300">git log</span>.
+            Repositórios que foram públicos no passado podem ter tido esse histórico indexado.
+          </p>
+          <div className="rounded-xl border border-white/10 bg-zinc-800/40 p-4 mt-2">
+            <p className="text-xs font-code text-zinc-500 uppercase tracking-wide mb-2">O que ferramentas de detecção varrem</p>
+            <ul className="space-y-1 text-zinc-400">
+              {[
+                'Código-fonte atual — todas as branches',
+                'Histórico completo de commits',
+                'Arquivos de configuração, .env, manifests',
+                'Strings de alta entropia (prováveis chaves geradas)',
+              ].map(i => <li key={i} className="flex items-start gap-2"><span className="text-zinc-600">&gt;</span>{i}</li>)}
+            </ul>
+          </div>
         </div>
       </section>
 
-      {/* Dinâmica da oficina */}
-      <section aria-labelledby="dinamica" className="bg-zinc-900/60 border border-white/10 rounded-2xl p-6 mb-6">
-        <h2 id="dinamica" className="text-lg font-bold font-code text-zinc-100 mb-4">Dinâmica da oficina</h2>
-        <ol className="space-y-3 text-sm text-zinc-400">
-          {[
-            ['Apresentação dos conceitos', 'Introdução a Code Review, SAST, SCA, CVE/NVD e SBOM com exemplos reais de vulnerabilidades.'],
-            ['Contextualização no pipeline CI/CD', 'Demonstração de como as ferramentas se integram a pipelines GitHub Actions, GitLab CI e similares.'],
-            ['Distribuição do script para os grupos', 'Cada grupo recebe o script scan.sh e as credenciais de acesso à API central.'],
-            ['Execução nos projetos', 'Os grupos rodam o scanner nos próprios projetos e os resultados aparecem no ranking ao vivo.'],
-            ['Ranking ao vivo', 'O painel exibe scores em tempo real via SSE, criando um ambiente competitivo e engajador.'],
-            ['Discussão dos achados', 'Análise coletiva das vulnerabilidades encontradas: o que são, por que ocorrem e como mitigar.'],
-            ['Premiação do maior score', 'O grupo com maior pontuação é reconhecido; o foco da discussão final é o grupo com menor score — onde mais se aprende.'],
-          ].map(([title, desc], i) => (
-            <li key={i} className="flex items-start gap-3">
-              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-white/10 border border-white/20 flex items-center justify-center font-code text-xs text-white mt-0.5">{i + 1}</span>
-              <span>
-                <span className="font-code text-zinc-300 font-semibold">{title}</span>
-                <span className="text-zinc-500"> — {desc}</span>
-              </span>
-            </li>
+      {/* 7. IaC Security */}
+      <section id="iac" className="bg-zinc-900/60 border border-white/10 rounded-2xl p-6 mb-6">
+        <h2 className="text-lg font-bold font-code text-zinc-100 mb-1">IaC Security — Segurança de Infraestrutura como Código</h2>
+        <p className="text-sm text-zinc-500 mb-4">Misconfigurações em Dockerfiles, Kubernetes e Terraform</p>
+        <div className="space-y-3 text-sm text-zinc-400 leading-relaxed">
+          <p>
+            IaC (<em>Infrastructure as Code</em>) define infraestrutura via arquivos de configuração.
+            Misconfigurações nesses arquivos geram vulnerabilidades em nível de infraestrutura —
+            independentes do código da aplicação.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+            {[
+              { arq: 'Dockerfile', exemplos: ['Container rodando como root (sem USER)', 'Imagem sem tag fixa (latest)', 'Secrets em ARG ou ENV'] },
+              { arq: 'Kubernetes', exemplos: ['Pod sem limites de CPU/memória', 'Container com privileged: true', 'Secrets em variáveis de ambiente em texto plano'] },
+            ].map(a => (
+              <div key={a.arq} className="rounded-xl border border-white/10 bg-zinc-800/40 p-4">
+                <p className="font-code text-zinc-300 font-semibold text-sm mb-2">{a.arq}</p>
+                <ul className="space-y-1 text-zinc-400 text-sm">
+                  {a.exemplos.map(e => <li key={e} className="flex items-start gap-2"><span className="text-zinc-600">!</span>{e}</li>)}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 8. OWASP Top 10 */}
+      <section id="owasp" className="bg-zinc-900/60 border border-white/10 rounded-2xl p-6 mb-6">
+        <h2 className="text-lg font-bold font-code text-zinc-100 mb-1">OWASP Top 10</h2>
+        <p className="text-sm text-zinc-500 mb-4">As dez categorias de vulnerabilidades web mais críticas</p>
+        <div className="space-y-2">
+          {OWASP.map(o => (
+            <div key={o.n} className="flex items-start gap-3 rounded-xl border border-white/8 bg-zinc-800/30 px-4 py-3">
+              <span className="flex-shrink-0 font-code text-xs text-zinc-500 mt-0.5 w-8">{o.n}</span>
+              <div>
+                <span className="font-code text-zinc-200 font-semibold text-sm">{o.label}</span>
+                <span className="text-zinc-500 text-sm"> — {o.desc}</span>
+              </div>
+            </div>
           ))}
-        </ol>
+        </div>
       </section>
 
-      {/* Exemplos de vulnerabilidades */}
-      <section aria-labelledby="exemplos" className="bg-zinc-900/60 border border-white/10 rounded-2xl p-6 mb-6">
-        <h2 id="exemplos" className="text-lg font-bold font-code text-zinc-100 mb-4">Exemplos de vulnerabilidades</h2>
-        <ul className="space-y-2 list-disc list-inside text-sm text-zinc-400">
-          <li><span className="text-zinc-300 font-code font-semibold">SQL Injection no Moodle</span> — análise da plataforma Moodle com base no OWASP Top 10 identificou 894 alertas via OWASP ZAP, destacando SQL Injection como vulnerabilidade de maior impacto potencial (Quincozes et al., 2024).</li>
-          <li><span className="text-zinc-300 font-code font-semibold">Cross-Site Script Inclusion (XSSI)</span> — estudo sobre XSSI demonstrou que a adoção do atributo <code className="font-code text-zinc-300 bg-zinc-800/70 px-1.5 py-0.5 rounded text-xs">SameSite</code> em cookies é a mitigação mais eficaz, com alta prevalência ainda em navegadores modernos (Miranda et al., 2024).</li>
-          <li><span className="text-zinc-300 font-code font-semibold">Buckets de armazenamento em nuvem mal configurados</span> — a ferramenta GENBUCKET identificou automaticamente buckets AWS S3 e GCS publicamente acessíveis, expondo dados sensíveis por misconfigurações em políticas IAM (Bazé et al., 2025).</li>
-          <li><span className="text-zinc-300 font-code font-semibold">Contratos inteligentes Solidity via AST</span> — a abordagem ASTSecurer analisa a árvore sintática abstrata de contratos Solidity para detectar reentrância, integer overflow e outras vulnerabilidades específicas de smart contracts (Esquivel et al., 2024).</li>
-          <li><span className="text-zinc-300 font-code font-semibold">Web-fuzzing em roteadores Wi-Fi</span> — combinação de Semgrep e Nuclei em análise de larga escala de firmware de roteadores domésticos validou o <code className="font-code text-zinc-300 bg-zinc-800/70 px-1.5 py-0.5 rounded text-xs">CVE-2022-46552</code> e identificou padrões de vulnerabilidade recorrentes entre diferentes fabricantes (Taffarel; Freitas; Pereira Junior, 2024).</li>
-        </ul>
+      {/* 9. Ferramentas */}
+      <section id="ferramentas" className="bg-zinc-900/60 border border-white/10 rounded-2xl p-6 mb-6">
+        <h2 className="text-lg font-bold font-code text-zinc-100 mb-1">Ferramentas utilizadas</h2>
+        <p className="text-sm text-zinc-500 mb-4">Todas open source, cada uma especialista em sua categoria.</p>
+        <div className="space-y-3">
+          {TOOLS.map(t => (
+            <div key={t.name} className="rounded-xl border border-white/10 bg-zinc-800/40 p-4">
+              <div className="flex items-center gap-3 mb-1.5 flex-wrap">
+                <span className="font-code font-semibold text-zinc-100">{t.name}</span>
+                <Tag label={t.category} />
+                <span className="text-xs text-zinc-600 font-code">{t.vendor}</span>
+              </div>
+              <p className="text-sm text-zinc-400 leading-relaxed">{t.desc}</p>
+            </div>
+          ))}
+        </div>
       </section>
 
-      {/* Referências */}
-      <section aria-labelledby="referencias" className="bg-zinc-900/60 border border-white/10 rounded-2xl p-6 mb-6">
-        <h2 id="referencias" className="text-lg font-bold font-code text-zinc-100 mb-1">Referências</h2>
-        <p className="text-sm text-zinc-500 mb-4">ABNT NBR 6023</p>
-        <ul className="space-y-3 text-sm text-zinc-400 leading-relaxed">
-          <li>
-            BAZÉ, M. et al. Identificação automática de buckets de armazenamento vulneráveis
-            com GENBUCKET. In: <em>SIMPÓSIO BRASILEIRO DE SEGURANÇA DA INFORMAÇÃO E DE SISTEMAS
-            COMPUTACIONAIS (SBSeg)</em>, 2025. <em>Anais</em> [...]. Porto Alegre: SBC, 2025.
-          </li>
-          <li>
-            ESQUIVEL, E. V. B. et al. Detecção de vulnerabilidades em contratos inteligentes
-            utilizando árvore sintática abstrata. In: <em>SIMPÓSIO BRASILEIRO DE SEGURANÇA DA
-            INFORMAÇÃO E DE SISTEMAS COMPUTACIONAIS (SBSeg)</em>, 2024. <em>Anais</em> [...].
-            Porto Alegre: SBC, 2024.
-          </li>
-          <li>
-            MIRANDA, H. C. de et al. Cross-Site Script Inclusion: um estudo das estratégias de
-            mitigação e atual prevalência da vulnerabilidade em navegadores. In:{' '}
-            <em>SIMPÓSIO BRASILEIRO DE SEGURANÇA DA INFORMAÇÃO E DE SISTEMAS COMPUTACIONAIS
-            (SBSeg)</em>, 2024. <em>Anais</em> [...]. Porto Alegre: SBC, 2024.
-          </li>
-          <li>
-            PONCE, L. M. et al. Identificação de serviços e dispositivos em dados de motores
-            de busca para o enriquecimento de análise de vulnerabilidades. In:{' '}
-            <em>SIMPÓSIO BRASILEIRO DE SEGURANÇA DA INFORMAÇÃO E DE SISTEMAS COMPUTACIONAIS
-            (SBSeg)</em>, 2024. <em>Anais</em> [...]. Porto Alegre: SBC, 2024.
-          </li>
-          <li>
-            QUINCOZES, S. E. et al. Análise de vulnerabilidades da plataforma Moodle com base
-            no Top 10 da OWASP. In: <em>SIMPÓSIO BRASILEIRO DE SEGURANÇA DA INFORMAÇÃO E DE
-            SISTEMAS COMPUTACIONAIS (SBSeg)</em>, 2024. <em>Anais</em> [...]. Porto Alegre:
-            SBC, 2024.
-          </li>
-          <li>
-            RIBEIRO, D. S. et al. Classificação de risco de vulnerabilidades de segurança via
-            processos gaussianos e aprendizado ativo. In: <em>SIMPÓSIO BRASILEIRO DE SEGURANÇA
-            DA INFORMAÇÃO E DE SISTEMAS COMPUTACIONAIS (SBSeg)</em>, 2024. <em>Anais</em> [...].
-            Porto Alegre: SBC, 2024.
-          </li>
-          <li>
-            TAFFAREL, F.; FREITAS, O. B. de; PEREIRA JUNIOR, L. A. Análise de vulnerabilidades
-            em larga escala nos roteadores Wi-Fi por meio de web-fuzzing. In:{' '}
-            <em>SIMPÓSIO BRASILEIRO DE SEGURANÇA DA INFORMAÇÃO E DE SISTEMAS COMPUTACIONAIS
-            (SBSeg)</em>, 2024. <em>Anais</em> [...]. Porto Alegre: SBC, 2024.
-          </li>
-        </ul>
+      {/* 10. Nossa abordagem */}
+      <section id="nossa-abordagem" className="bg-zinc-900/60 border border-white/10 rounded-2xl p-6 mb-6">
+        <h2 className="text-lg font-bold font-code text-zinc-100 mb-1">Nossa abordagem — hub de ferramentas open source</h2>
+        <p className="text-sm text-zinc-500 mb-4">Uma ferramenta robusta construída sobre as melhores ferramentas de cada categoria</p>
+        <div className="space-y-3 text-sm text-zinc-400 leading-relaxed">
+          <p>
+            Em vez de uma ferramenta monolítica proprietária, a abordagem adotada orquestra as
+            melhores ferramentas open source de cada categoria em um pipeline unificado — um hub
+            que consolida resultados e calcula um score único e comparável.
+          </p>
+          <div className="overflow-x-auto mt-4">
+            <table className="w-full text-sm font-code">
+              <thead>
+                <tr className="text-xs text-zinc-500 uppercase tracking-wide border-b border-white/10">
+                  <th className="text-left py-2 pr-6">Categoria</th>
+                  <th className="text-left py-2 pr-6">Ferramenta</th>
+                  <th className="text-left py-2">O que cobre</th>
+                </tr>
+              </thead>
+              <tbody className="text-zinc-400">
+                {[
+                  ['SBOM + SCA', 'Syft + Grype', 'Dependências e CVEs em pacotes de terceiros'],
+                  ['SAST', 'Semgrep', 'Código-fonte — OWASP Top 10, CWE Top 25'],
+                  ['Secrets', 'Gitleaks', 'Credenciais no código e histórico git'],
+                  ['IaC / Misconfig', 'Trivy', 'Dockerfiles, Kubernetes, Terraform'],
+                ].map(([cat, tool, cobre]) => (
+                  <tr key={cat} className="border-b border-white/5">
+                    <td className="py-2 pr-6 text-zinc-300">{cat}</td>
+                    <td className="py-2 pr-6 text-zinc-200">{tool}</td>
+                    <td className="py-2 text-zinc-500">{cobre}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-4">
+            <p className="font-code text-zinc-300 font-semibold text-xs uppercase tracking-wide mb-2">Por que hub e não ferramenta única</p>
+            <ul className="space-y-1.5 text-zinc-400">
+              {[
+                'Cada ferramenta é especialista em sua categoria — melhor cobertura combinada',
+                'Todas open source — sem custo de licença, auditáveis, mantidas por comunidades ativas',
+                'Combinadas, cobrem as principais categorias do OWASP Top 10',
+                'Orquestração controlada — outputs normalizados e score único consolidado',
+              ].map(i => <li key={i} className="flex items-start gap-2"><span className="text-zinc-600">+</span>{i}</li>)}
+            </ul>
+          </div>
+          <div className="mt-4 rounded-xl border border-white/10 bg-zinc-800/40 p-4">
+            <p className="font-code text-zinc-300 font-semibold text-xs uppercase tracking-wide mb-2">Pipeline de execução</p>
+            <pre className="text-xs text-zinc-400 leading-relaxed overflow-x-auto">{`commit → CI/CD
+          ├── build
+          ├── testes unitários
+          ├── SCA    (Syft + Grype)    ← CVEs em dependências
+          ├── SAST   (Semgrep)         ← código-fonte
+          ├── Secrets (Gitleaks)       ← credenciais expostas
+          ├── IaC    (Trivy)           ← infraestrutura
+          └── deploy  ← somente se aprovado`}</pre>
+          </div>
+        </div>
       </section>
     </div>
   )
