@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import { VulnList } from '../components/VulnList.js'
 import { ScoreBar } from '../components/ScoreBar.js'
+import { buildPrompt } from '../lib/buildPrompt.js'
 import type { SubmissionDetail, Vulnerability } from '../types.js'
 
 type Tab = 'grype' | 'semgrep' | 'gitleaks' | 'trivy'
@@ -58,6 +59,8 @@ export function DetailPage() {
   const [detail, setDetail] = useState<SubmissionDetail | null>(null)
   const [activeTab, setActiveTab] = useState<Tab>('grype')
   const [error, setError] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+  const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -65,6 +68,31 @@ export function DetailPage() {
       .then(setDetail)
       .catch(() => setError('Submissão não encontrada'))
   }, [id])
+
+  useEffect(() => () => {
+    if (copiedTimer.current) clearTimeout(copiedTimer.current)
+  }, [])
+
+  async function copyPrompt() {
+    if (!detail) return
+    const text = buildPrompt(detail)
+    try {
+      await navigator.clipboard.writeText(text)
+    } catch {
+      // Fallback para contextos sem Clipboard API (ex.: HTTP sem TLS)
+      const textarea = document.createElement('textarea')
+      textarea.value = text
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+    }
+    setCopied(true)
+    if (copiedTimer.current) clearTimeout(copiedTimer.current)
+    copiedTimer.current = setTimeout(() => setCopied(false), 2000)
+  }
 
   if (error) {
     return (
@@ -149,6 +177,35 @@ export function DetailPage() {
             {submission.trivy_version && <span>Trivy {submission.trivy_version}</span>}
           </div>
         )}
+      </div>
+
+      {/* Copy prompt button */}
+      <div className="flex justify-end mb-4">
+        <div className="relative group/copy">
+          <button
+            onClick={copyPrompt}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-code border transition-all duration-150 cursor-pointer ${
+              copied
+                ? 'bg-green-500/10 text-green-400 border-green-500/30'
+                : 'bg-zinc-800/60 text-zinc-300 border-zinc-700/60 hover:border-zinc-500 hover:text-white'
+            }`}
+          >
+            {copied ? (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            ) : (
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            )}
+            {copied ? 'Copiado!' : 'Copiar prompt para IA'}
+          </button>
+          {/* Tooltip */}
+          <div className="absolute bottom-full right-0 mb-2 w-72 px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-xs text-zinc-300 font-sans leading-relaxed pointer-events-none opacity-0 group-hover/copy:opacity-100 transition-opacity duration-150 z-10 shadow-lg">
+            Copia o relatório completo das 4 ferramentas em formato de prompt, pronto para colar em agentes de IA (Claude Code, Copilot, etc.) e corrigir as vulnerabilidades.
+          </div>
+        </div>
       </div>
 
       {/* Tabs */}
